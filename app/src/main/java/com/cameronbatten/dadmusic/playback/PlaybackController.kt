@@ -9,6 +9,7 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.cameronbatten.dadmusic.data.db.Song
+import com.cameronbatten.dadmusic.ui.library.PlaybackCommands
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -59,7 +60,7 @@ private const val POSITION_POLL_INTERVAL_MS = 500L
  */
 class PlaybackController @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
+) : PlaybackCommands {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val _state = MutableStateFlow(PlaybackState())
@@ -120,7 +121,7 @@ class PlaybackController @Inject constructor(
      * Playback-time failures (bad URI, decode error) arrive asynchronously via
      * [Player.Listener.onPlayerError] — see [playerListener].
      */
-    suspend fun play(song: Song) {
+    override suspend fun play(song: Song) {
         try {
             val controller = awaitController()
             val mediaItem = MediaItem.Builder()
