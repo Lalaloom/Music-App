@@ -12,8 +12,10 @@ import com.cameronbatten.dadmusic.data.db.Song
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -154,6 +156,14 @@ class PlaybackControllerTest {
         // The controller must be constructable — if it throws, the test fails
         assertNotNull("controller must initialise without throwing", controller)
 
+        // Validate the initial state invariants that the error path must preserve
+        // (no song, no error, not playing).  If a regression reorders init to
+        // produce a stale lastError or spurious isPlaying=true, these catch it.
+        val initial = controller.state().value
+        assertFalse("Initial state must not be playing", initial.isPlaying)
+        assertNull("Initial state must have no error", initial.lastError)
+        assertEquals("Initial currentSongId must be null", null, initial.currentSongId)
+
         // On-device: calling play with a missing URI should be caught internally
         // try {
         //     controller.play(missingSong)
@@ -178,9 +188,15 @@ class PlaybackControllerTest {
      */
     @Test
     fun audioBecomesNoisy_pausesPlayback() = runTest {
-        // Compile gate: assert the broadcast action constant is resolvable
+        // Compile gate: lock the broadcast action string.  If anybody retypes
+        // the constant (e.g. as "AUDIO_BECOMING_NOISY" without the package),
+        // the production path's noisy handling would silently stop working.
         val action = android.media.AudioManager.ACTION_AUDIO_BECOMING_NOISY
-        assertNotNull("AUDIO_BECOMING_NOISY action must be defined", action)
+        assertEquals(
+            "AUDIO_BECOMING_NOISY action string must match platform contract",
+            "android.media.AUDIO_BECOMING_NOISY",
+            action,
+        )
 
         // On-device:
         // controller.play(mp3Song)
@@ -219,6 +235,17 @@ class PlaybackControllerTest {
             ComponentName(context, PlaybackService::class.java),
         )
         assertNotNull("SessionToken must be constructable", token)
+
+        // Lock the session's package identity.  After process death the OS
+        // routes rebind by (packageName, service component).  If the token
+        // starts resolving to a different package (e.g. test harness context
+        // leaks across modules), rebind would silently connect to the wrong
+        // session.
+        assertEquals(
+            "Session token must bind to this app's package",
+            context.packageName,
+            token.packageName,
+        )
 
         // On-device steps:
         // // Step 2 — Play something so the session has state

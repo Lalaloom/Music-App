@@ -12,6 +12,7 @@ import com.cameronbatten.dadmusic.data.db.Song
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -21,6 +22,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
@@ -112,16 +114,33 @@ class PlaybackController @Inject constructor(
      * Load and play [song]. Suspends until the [MediaController] is connected.
      * Encodes [Song.id] as the [MediaItem.mediaId] so [playerListener] can
      * round-trip the song identity back to [PlaybackState.currentSongId].
+     *
+     * Pre-playback failures (service not bound, controller connection error) are
+     * caught here so callers (e.g. ViewModel) never see a thrown exception.
+     * Playback-time failures (bad URI, decode error) arrive asynchronously via
+     * [Player.Listener.onPlayerError] — see [playerListener].
      */
     suspend fun play(song: Song) {
-        val controller = awaitController()
-        val mediaItem = MediaItem.Builder()
-            .setUri(song.uri)
-            .setMediaId(song.id.toString())
-            .build()
-        controller.setMediaItem(mediaItem)
-        controller.prepare()
-        controller.play()
+        try {
+            val controller = awaitController()
+            val mediaItem = MediaItem.Builder()
+                .setUri(song.uri)
+                .setMediaId(song.id.toString())
+                .build()
+            controller.setMediaItem(mediaItem)
+            controller.prepare()
+            controller.play()
+        } catch (e: CancellationException) {
+            throw e // never swallow cancellation
+        } catch (e: Exception) {
+            Log.w(TAG, "play() failed before playback could start", e)
+            _state.update {
+                it.copy(
+                    isPlaying = false,
+                    lastError = e.message ?: "Playback could not start",
+                )
+            }
+        }
     }
 
     fun pause() {
