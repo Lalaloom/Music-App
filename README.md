@@ -79,11 +79,15 @@ MUSICAPP_KEY_ALIAS=dadmusic
 MUSICAPP_KEY_PASSWORD=your_key_password
 ```
 
-On Windows use double backslashes for the path:
+On Windows use double backslashes for the path — `gradle.properties` follows Java-properties
+escape rules, so `\\` is a single `\`. Type the double-backslash form literally:
 
 ```properties
 MUSICAPP_KEYSTORE_PATH=C:\\Users\\you\\dad-music-release.jks
 ```
+
+> Note: if you type `C:\Users\...` (single backslash) Gradle will silently misparse the path
+> and signing will fail with a "keystore not found" error.
 
 ### Building a signed release APK
 

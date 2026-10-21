@@ -21,6 +21,9 @@ object AppModule {
 
     @Provides
     @Singleton
+    // TODO(M2): add a Migration strategy (addMigrations / fallbackToDestructiveMigration) before
+    //           bumping the Room schema version; omitting migrations on a version bump will crash
+    //           on devices that have the previous version installed.
     fun provideAppDatabase(@ApplicationContext ctx: Context): AppDatabase =
         Room.databaseBuilder(ctx, AppDatabase::class.java, "dad_music.db").build()
 

@@ -1,10 +1,11 @@
 package com.cameronbatten.dadmusic
 
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SmokeTest {
     @Test
     fun placeholder() {
-        assert(2 + 2 == 4)
+        assertEquals(4, 2 + 2)
     }
 }

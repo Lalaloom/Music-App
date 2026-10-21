@@ -21,10 +21,10 @@ android {
     }
 
     signingConfigs {
-        val keystorePath: String? = project.findProperty("MUSICAPP_KEYSTORE_PATH") as String?
-        val keystorePwd: String? = project.findProperty("MUSICAPP_KEYSTORE_PASSWORD") as String?
-        val keyAlias: String? = project.findProperty("MUSICAPP_KEY_ALIAS") as String?
-        val keyPwd: String? = project.findProperty("MUSICAPP_KEY_PASSWORD") as String?
+        val keystorePath: String? = project.findProperty("MUSICAPP_KEYSTORE_PATH") as? String
+        val keystorePwd: String? = project.findProperty("MUSICAPP_KEYSTORE_PASSWORD") as? String
+        val keyAlias: String? = project.findProperty("MUSICAPP_KEY_ALIAS") as? String
+        val keyPwd: String? = project.findProperty("MUSICAPP_KEY_PASSWORD") as? String
 
         if (keystorePath != null && keystorePwd != null && keyAlias != null && keyPwd != null) {
             create("release") {
@@ -42,11 +42,10 @@ android {
             // Uses the default debug keystore automatically
         }
         release {
-            isMinifyEnabled = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            // M1: R8 disabled — proguard-rules.pro covers only 3 rules and has not been
+            // smoke-tested against Hilt/Room/Media3 reflection. Enable in M2 once the rule
+            // set is validated against an installed release APK.
+            isMinifyEnabled = false
             // Attach release signing config only if it was configured.
             signingConfigs.findByName("release")?.let { signingConfig = it }
         }
@@ -85,6 +84,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
 
     // Navigation
     implementation(libs.androidx.navigation.compose)

@@ -18,7 +18,6 @@ import javax.inject.Singleton
  */
 data class ImportResult(val added: Int, val updated: Int, val skipped: Int)
 
-private val AUDIO_EXTENSIONS = setOf("mp3", "m4a", "wav", "flac", "aac")
 private val VIDEO_EXTENSIONS = setOf("mp4", "mkv", "webm")
 
 /**
@@ -62,7 +61,8 @@ class LibraryImporter @Inject constructor(
             val metadata = metadataReader.read(file.uri)
             val parsed = FilenameParser.parse(file.displayName)
 
-            val title = metadata.title ?: parsed.title ?: file.displayName
+            val title = metadata.title ?: parsed.title
+                ?: file.displayName.substringBeforeLast('.', file.displayName)
             val artist = metadata.artist ?: parsed.artist
             val album = metadata.album
             val durationMs = metadata.durationMs

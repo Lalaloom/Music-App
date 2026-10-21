@@ -12,10 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -206,7 +206,7 @@ private fun TransportControls(
             modifier = Modifier.size(SKIP_SIZE),
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                imageVector = Icons.Default.SkipPrevious,
                 contentDescription = stringResource(R.string.player_skip_previous_description),
                 modifier = Modifier.fillMaxSize(),
                 tint = Color.White,
@@ -224,7 +224,7 @@ private fun TransportControls(
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    imageVector = if (isPlaying) Icons.Default.Close else Icons.Default.PlayArrow,
+                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = stringResource(R.string.player_play_pause_description),
                     tint = MaterialTheme.colorScheme.onPrimary,
                 )
@@ -237,7 +237,7 @@ private fun TransportControls(
             modifier = Modifier.size(SKIP_SIZE),
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                imageVector = Icons.Default.SkipNext,
                 contentDescription = stringResource(R.string.player_skip_next_description),
                 modifier = Modifier.fillMaxSize(),
                 tint = Color.White,

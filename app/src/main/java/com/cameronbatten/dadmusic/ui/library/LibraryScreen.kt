@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -60,7 +61,7 @@ fun LibraryScreen(
                 actions = {
                     IconButton(onClick = onOpenFolders) {
                         Icon(
-                            imageVector = Icons.Default.Add,
+                            imageVector = Icons.Default.FolderOpen,
                             contentDescription = stringResource(R.string.folders_icon_description),
                         )
                     }
@@ -114,7 +115,9 @@ private fun EmptyLibrary(
             )
             Button(
                 onClick = onOpenFolders,
-                modifier = Modifier.padding(top = 16.dp),
+                modifier = Modifier
+                    .padding(top = 16.dp)
+                    .heightIn(min = 64.dp),
             ) {
                 Text(stringResource(R.string.library_pick_folder_button))
             }
@@ -131,6 +134,7 @@ private fun SongRow(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = ROW_MIN_HEIGHT)
+            .semantics(mergeDescendants = true) {}
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {

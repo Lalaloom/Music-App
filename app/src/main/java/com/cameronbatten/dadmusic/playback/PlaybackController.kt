@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -57,6 +58,7 @@ private const val POSITION_POLL_INTERVAL_MS = 500L
  *
  * @param context Application context — injected by Hilt.
  */
+@Singleton
 class PlaybackController @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : PlaybackSession {
@@ -173,7 +175,11 @@ class PlaybackController @Inject constructor(
 
     /**
      * Release the controller and cancel the coroutine scope.
-     * Must be called from the component that owns this controller (e.g. ViewModel.onCleared).
+     *
+     * **Test-only.** Call this only from instrumented-test `tearDown` methods to clean up
+     * after a test. Must NOT be called from production code: releasing from
+     * `ViewModel.onCleared()` races the service lifecycle and will leave the app in an
+     * unrecoverable idle state (Option A ruling — M1 final review).
      */
     fun release() {
         stopPositionPolling()
