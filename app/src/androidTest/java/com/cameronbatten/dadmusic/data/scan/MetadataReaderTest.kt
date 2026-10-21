@@ -77,6 +77,13 @@ class MetadataReaderTest {
         assertNotNull("read() must return a non-null FileMetadata", result)
         // durationMs must be non-negative (0L is acceptable for the placeholder fixture).
         assertTrue("durationMs must be >= 0", result.durationMs >= 0L)
+        // TODO(Task 12 manual smoke): replace tagged.mp3 with a real ~1s tagged audio file
+        // (title/artist/album = "Test") and tighten these assertions to:
+        //   assertEquals("Test", result.title)
+        //   assertEquals("TestArtist", result.artist)
+        //   assertEquals("TestAlbum", result.album)
+        //   assertTrue(result.durationMs > 0L)
+        // The current placeholder bytes are only sufficient to prove the method does not crash.
     }
 
     /**
@@ -95,8 +102,17 @@ class MetadataReaderTest {
         assertNull("title should be null for tagless file", result.title)
         assertNull("artist should be null for tagless file", result.artist)
         assertNull("album should be null for tagless file", result.album)
-        // durationMs should be >= 0; exact value verified on-device in Task 12.
-        assertTrue("durationMs must be >= 0", result.durationMs >= 0L)
+        // Placeholder fixture triggers the fallback path: assertEquals(0L, …) is the
+        // honest assertion for the current environment. See TODO below.
+        assertEquals(
+            "durationMs is 0L today because the placeholder tagless.mp3 is not a decodable frame; " +
+                "the retriever rejects it and falls back",
+            0L,
+            result.durationMs,
+        )
+        // TODO(Task 12 manual smoke): replace tagless.mp3 with a real ~1s tagless audio file
+        // and flip this assertion to `assertTrue("durationMs must be > 0 on a real tagless file", result.durationMs > 0L)`
+        // so the test name's "AndNonZeroDuration" promise is verified on-device.
     }
 
     /**
