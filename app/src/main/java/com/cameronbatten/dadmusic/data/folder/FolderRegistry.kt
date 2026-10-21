@@ -35,7 +35,7 @@ private const val KEY_URIS = "uris"
  * no explicit [@Provides][dagger.Provides] entry is required in the Hilt module.
  */
 @Singleton
-class FolderRegistry @Inject constructor(
+open class FolderRegistry @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
 
@@ -129,7 +129,7 @@ class FolderRegistry @Inject constructor(
      * URIs whose permissions were revoked externally (e.g. by the system after a factory-reset
      * of external storage) are silently excluded.
      */
-    fun resolvableUris(): List<Uri> {
+    open fun resolvableUris(): List<Uri> {
         val activePermissions = context.contentResolver.persistedUriPermissions
             .filter { it.isReadPermission }
             .mapTo(HashSet()) { it.uri }

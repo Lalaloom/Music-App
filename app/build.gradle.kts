@@ -81,6 +81,9 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
 
+    // DocumentFile — SAF tree traversal
+    implementation(libs.androidx.documentfile)
+
     // Media3 (ExoPlayer + MediaSession + UI)
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.session)
