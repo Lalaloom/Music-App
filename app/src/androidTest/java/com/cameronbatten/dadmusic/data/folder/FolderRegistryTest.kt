@@ -4,10 +4,11 @@ import android.content.Intent
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -97,31 +98,39 @@ class FolderRegistryTest {
      * [FolderRegistry.observe] must emit the updated set after [FolderRegistry.add] and again
      * after [FolderRegistry.remove].
      *
-     * Collect the first two emissions that differ:
-     *   emission 1 (after add)   → set contains testUri
-     *   emission 2 (after remove) → set does NOT contain testUri
+     * One subscription, three emissions:
+     *   emissions[0] — initial snapshot (no testUri)
+     *   emissions[1] — after add (contains testUri)
+     *   emissions[2] — after remove (does NOT contain testUri)
+     *
+     * This exercises the real `OnSharedPreferenceChangeListener` path rather than
+     * re-opening a fresh cold flow for each read.
      */
     @Test
     fun observe_emitsAfterAddAndAfterRemove() = runTest {
         // Ensure we start clean (URI not present).
         try { registry.remove(testUri) } catch (_: Exception) { }
 
-        registry.add(testUri)
+        val emissions = mutableListOf<Set<Uri>>()
+        val job = launch {
+            registry.observe().take(3).toList(emissions)
+        }
 
-        // The first emission after add should contain the URI.
-        val afterAdd: Set<Uri> = registry.observe().first()
+        // Give the subscription a chance to register and capture the initial snapshot.
+        yield()
+
+        registry.add(testUri)      // triggers emissions[1]
+        registry.remove(testUri)   // triggers emissions[2]
+
+        job.join()
+
         assertTrue(
             "observe() should emit a set containing testUri after add()",
-            afterAdd.contains(testUri),
+            emissions[1].contains(testUri),
         )
-
-        registry.remove(testUri)
-
-        // The next emission after remove should not contain the URI.
-        val afterRemove: Set<Uri> = registry.observe().first()
         assertFalse(
             "observe() should emit a set NOT containing testUri after remove()",
-            afterRemove.contains(testUri),
+            emissions[2].contains(testUri),
         )
     }
 }

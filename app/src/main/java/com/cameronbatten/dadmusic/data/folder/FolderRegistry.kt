@@ -8,6 +8,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -40,6 +42,16 @@ class FolderRegistry @Inject constructor(
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
+    /**
+     * Guards the read-modify-write cycle around [prefs] in [add] and [remove].
+     *
+     * [SharedPreferences.putStringSet] is a blind overwrite (no CAS), so two concurrent
+     * `add`/`remove` calls can clobber each other.  Since the public API is `suspend`,
+     * coroutine concurrency is part of the stated contract — we serialise the critical
+     * section with a [Mutex].
+     */
+    private val mutex = Mutex()
+
     // ── Stored URIs helpers ───────────────────────────────────────────────────
 
     private fun storedUriStrings(): Set<String> =
@@ -57,12 +69,16 @@ class FolderRegistry @Inject constructor(
      * [ContentResolver.takePersistableUriPermission] is idempotent.
      */
     suspend fun add(uri: Uri) {
+        // Take the permission BEFORE acquiring the lock so permission errors propagate
+        // without blocking concurrent remove()s.
         context.contentResolver.takePersistableUriPermission(
             uri,
             Intent.FLAG_GRANT_READ_URI_PERMISSION,
         )
-        val updated = storedUriStrings().toMutableSet().apply { add(uri.toString()) }
-        prefs.edit().putStringSet(KEY_URIS, updated).apply()
+        mutex.withLock {
+            val updated = storedUriStrings().toMutableSet().apply { add(uri.toString()) }
+            prefs.edit().putStringSet(KEY_URIS, updated).apply()
+        }
     }
 
     /**
@@ -71,6 +87,8 @@ class FolderRegistry @Inject constructor(
      * If [uri] is not present, this is a no-op.
      */
     suspend fun remove(uri: Uri) {
+        // Release the permission BEFORE acquiring the lock so permission errors propagate
+        // without blocking concurrent add()s.
         try {
             context.contentResolver.releasePersistableUriPermission(
                 uri,
@@ -79,8 +97,10 @@ class FolderRegistry @Inject constructor(
         } catch (_: SecurityException) {
             // Permission was already gone — continue with removal from prefs.
         }
-        val updated = storedUriStrings().toMutableSet().apply { remove(uri.toString()) }
-        prefs.edit().putStringSet(KEY_URIS, updated).apply()
+        mutex.withLock {
+            val updated = storedUriStrings().toMutableSet().apply { remove(uri.toString()) }
+            prefs.edit().putStringSet(KEY_URIS, updated).apply()
+        }
     }
 
     /**
