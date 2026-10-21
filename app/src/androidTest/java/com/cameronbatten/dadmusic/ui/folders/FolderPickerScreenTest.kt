@@ -92,14 +92,15 @@ class FolderPickerScreenTest {
     // ── 2. Add-folder button presence ─────────────────────────────────────────
 
     /**
-     * Verifies that tapping "Add folder" does not crash and the button is present.
+     * Verifies that the "Add folder" button is present and enabled.
      *
      * Full [ActivityResultLauncher] stubbing requires a real device with a SAF provider;
-     * this test verifies button presence and tap-safety (no crash) — actual folder-picker
-     * launch is covered by manual QA or a device-lab instrumented test.
+     * the actual folder-picker launch path is covered by manual QA or a device-lab
+     * instrumented test. The commented `performClick()` call shows the gesture that would
+     * exercise the launcher if a SAF provider were available.
      */
     @Test
-    fun tapping_add_folder_launches_open_document_tree_result() {
+    fun add_folder_button_is_present_and_enabled() {
         val vm = buildViewModel()
         composeTestRule.setContent {
             FolderPickerScreen(onDone = {}, viewModel = vm)

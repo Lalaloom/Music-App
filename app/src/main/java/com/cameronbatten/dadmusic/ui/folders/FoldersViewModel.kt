@@ -41,15 +41,17 @@ class FoldersViewModel @Inject constructor(
     /**
      * The current list of registered folder [Uri]s, ordered by insertion (LinkedHashSet order
      * preserved by [FolderRegistry]).
+     *
+     * Exposed as a `val` so that recomposition does not create a new upstream [stateIn]
+     * subscription (and transient empty-state flash) on every call.
      */
-    fun folders(): StateFlow<List<Uri>> =
-        folderStore.observe()
-            .map { set -> set.toList() }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = emptyList(),
-            )
+    val folders: StateFlow<List<Uri>> = folderStore.observe()
+        .map { set -> set.toList() }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList(),
+        )
 
     /** Registers [uri] as a new music folder. */
     fun addFolder(uri: Uri) {

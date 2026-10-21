@@ -26,13 +26,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cameronbatten.dadmusic.R
 
 /**
@@ -58,9 +58,9 @@ fun FolderPickerScreen(
     onDone: () -> Unit,
     viewModel: FoldersViewModel = hiltViewModel(),
 ) {
-    val folders by viewModel.folders().collectAsState()
-    val isImporting by viewModel.isImporting.collectAsState()
-    val importResult by viewModel.importResult.collectAsState()
+    val folders by viewModel.folders.collectAsStateWithLifecycle()
+    val isImporting by viewModel.isImporting.collectAsStateWithLifecycle()
+    val importResult by viewModel.importResult.collectAsStateWithLifecycle()
 
     val openDocumentTreeLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
