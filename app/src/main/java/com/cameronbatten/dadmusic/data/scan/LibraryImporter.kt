@@ -42,7 +42,7 @@ class LibraryImporter @Inject constructor(
     private val scanner: FileScannerSource,
     private val metadataReader: MetadataSource,
     private val songDao: SongDao,
-) {
+) : LibraryImporterSource {
 
     /**
      * Scans all registered folders, merges embedded metadata with filename-parsed fallbacks,
@@ -52,7 +52,7 @@ class LibraryImporter @Inject constructor(
      *
      * @return [ImportResult] with counts of added, updated, and skipped files.
      */
-    suspend fun importAll(): ImportResult = withContext(Dispatchers.IO) {
+    override suspend fun importAll(): ImportResult = withContext(Dispatchers.IO) {
         val files = scanner.scanAll()
 
         var added = 0

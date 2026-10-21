@@ -37,7 +37,7 @@ private const val KEY_URIS = "uris"
 @Singleton
 class FolderRegistry @Inject constructor(
     @ApplicationContext private val context: Context,
-) : FolderUriSource {
+) : FolderUriSource, FolderStore {
 
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -68,7 +68,7 @@ class FolderRegistry @Inject constructor(
      * Safe to call if [uri] is already present — [SharedPreferences] deduplicates strings and
      * [ContentResolver.takePersistableUriPermission] is idempotent.
      */
-    suspend fun add(uri: Uri) {
+    override suspend fun add(uri: Uri) {
         // Take the permission BEFORE acquiring the lock so permission errors propagate
         // without blocking concurrent remove()s.
         context.contentResolver.takePersistableUriPermission(
@@ -86,7 +86,7 @@ class FolderRegistry @Inject constructor(
      *
      * If [uri] is not present, this is a no-op.
      */
-    suspend fun remove(uri: Uri) {
+    override suspend fun remove(uri: Uri) {
         // Release the permission BEFORE acquiring the lock so permission errors propagate
         // without blocking concurrent add()s.
         try {
@@ -108,7 +108,7 @@ class FolderRegistry @Inject constructor(
      *
      * Uses a [SharedPreferences.OnSharedPreferenceChangeListener] backed by [callbackFlow].
      */
-    fun observe(): Flow<Set<Uri>> = callbackFlow {
+    override fun observe(): Flow<Set<Uri>> = callbackFlow {
         // Emit the current snapshot immediately.
         trySend(storedUris())
 

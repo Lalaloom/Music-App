@@ -14,6 +14,8 @@
     <string name="folders_remove_folder_description">Remove folder</string>
     <string name="folders_scanning">Scanning…</string>
     <string name="folders_done_button">Done</string>
+    <string name="folders_empty_prompt">No folders added yet</string>
+    <string name="folders_import_summary">Added %1$d, updated %2$d, skipped %3$d</string>
 
     <!-- Player screen -->
     <string name="player_play_pause_description">Play / Pause</string>
