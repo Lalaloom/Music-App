@@ -18,15 +18,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary = true
-        }
     }
 
     buildTypes {
         debug {
             isDebuggable = true
-            applicationIdSuffix = ".debug"
             // Uses the default debug keystore automatically
         }
         release {
