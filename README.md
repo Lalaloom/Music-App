@@ -48,6 +48,66 @@ The project does NOT pin a JDK path (so clones and CI stay portable). Pick one o
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
-## Release signing (Task 12)
+## Release signing
 
-To be documented once navigation and signing are wired in Milestone 1, Task 12.
+### Generating a keystore (one-time, developer)
+
+Run this once on your development machine and keep the resulting `.jks` file somewhere safe (outside the repository):
+
+```bash
+keytool -genkeypair \
+  -keystore ~/dad-music-release.jks \
+  -alias dadmusic \
+  -keyalg RSA \
+  -keysize 2048 \
+  -validity 10000 \
+  -storepass your_store_password \
+  -keypass your_key_password \
+  -dname "CN=Dad Music, OU=Personal, O=Cameron Batten, L=, S=, C=AU"
+```
+
+Replace `your_store_password` and `your_key_password` with strong passwords you choose.
+
+### Putting credentials in Gradle properties
+
+Open (or create) `~/.gradle/gradle.properties` (this file is **never** committed to any repo) and add the four properties:
+
+```properties
+MUSICAPP_KEYSTORE_PATH=/Users/you/dad-music-release.jks
+MUSICAPP_KEYSTORE_PASSWORD=your_store_password
+MUSICAPP_KEY_ALIAS=dadmusic
+MUSICAPP_KEY_PASSWORD=your_key_password
+```
+
+On Windows use double backslashes for the path:
+
+```properties
+MUSICAPP_KEYSTORE_PATH=C:\\Users\\you\\dad-music-release.jks
+```
+
+### Building a signed release APK
+
+```bash
+./gradlew :app:assembleRelease
+# Output: app/build/outputs/apk/release/app-release.apk  (signed)
+# Without the four properties above the output will be app-release-unsigned.apk
+```
+
+---
+
+## Installing the APK on an Android device (musician's guide)
+
+You do not need a Google Play account. Follow these steps on the Android device (tablet or phone):
+
+1. **Receive the APK file.** Your developer can send it via email, a Dropbox link, or a USB cable transfer. Save it somewhere easy to find, such as the Downloads folder.
+
+2. **Allow installation from unknown sources.**
+   - Open **Settings → Apps** (or **Settings → Apps & notifications**).
+   - Tap **Special app access** → **Install unknown apps**.
+   - Find the app you will use to open the APK (for example **Files** or **My Files** or your email app) and turn **Allow from this source** on.
+
+3. **Open the APK.** Use your file manager app to navigate to the APK and tap it. Android will ask "Do you want to install this app?" — tap **Install**.
+
+4. **Grant storage access.** On first launch the app will ask for permission to access your music files. Tap **Allow** (or **Allow access to media files**) so the app can scan your folders.
+
+5. **Pick your music folder.** Tap the folder icon, select the folder that contains your mp3 and mp4 karaoke files, and the library will populate automatically.

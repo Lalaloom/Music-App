@@ -20,6 +20,22 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        val keystorePath: String? = project.findProperty("MUSICAPP_KEYSTORE_PATH") as String?
+        val keystorePwd: String? = project.findProperty("MUSICAPP_KEYSTORE_PASSWORD") as String?
+        val keyAlias: String? = project.findProperty("MUSICAPP_KEY_ALIAS") as String?
+        val keyPwd: String? = project.findProperty("MUSICAPP_KEY_PASSWORD") as String?
+
+        if (keystorePath != null && keystorePwd != null && keyAlias != null && keyPwd != null) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = keystorePwd
+                this.keyAlias = keyAlias
+                keyPassword = keyPwd
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isDebuggable = true
@@ -31,6 +47,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Attach release signing config only if it was configured.
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
 

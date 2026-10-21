@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             DadMusicTheme {
-                // Navigation host will be wired in Task 12
+                MainNavHost()
             }
         }
     }
