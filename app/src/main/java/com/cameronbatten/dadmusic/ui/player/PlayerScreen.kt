@@ -25,10 +25,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -70,13 +71,14 @@ fun PlayerScreen(
     if (isVideo) {
         VideoPlayerContent(
             onBack = onBack,
+            lastError = state.lastError,
             viewModel = viewModel,
         )
     } else {
         AudioPlayerContent(
             onBack = onBack,
             title = currentSong?.title ?: stringResource(R.string.player_unknown_title),
-            artist = currentSong?.artist ?: "",
+            artist = currentSong?.artist ?: stringResource(R.string.player_unknown_artist),
             isPlaying = state.isPlaying,
             positionMs = state.positionMs,
             durationMs = state.durationMs,
@@ -250,15 +252,25 @@ private fun Scrubber(
     durationMs: Long,
     onSeek: (Long) -> Unit,
 ) {
-    // Track slider drag locally; commit on release
-    val safeMax = durationMs.coerceAtLeast(1L).toFloat()
-    var dragValue by remember(positionMs) { mutableFloatStateOf(positionMs.toFloat()) }
+    // Track slider drag locally; commit on release.
+    // `isDragging` gates the `remember` key so position-polling (every 500ms) does
+    // NOT snap the thumb back to the live position while the user is still dragging.
+    var isDragging by remember { mutableStateOf(false) }
+    var dragValue by remember(if (isDragging) Unit else positionMs) {
+        mutableFloatStateOf(positionMs.toFloat())
+    }
 
     Slider(
         value = dragValue,
-        onValueChange = { dragValue = it },
-        onValueChangeFinished = { onSeek(dragValue.toLong()) },
-        valueRange = 0f..safeMax,
+        onValueChange = {
+            isDragging = true
+            dragValue = it
+        },
+        onValueChangeFinished = {
+            isDragging = false
+            onSeek(dragValue.toLong())
+        },
+        valueRange = 0f..maxOf(1f, durationMs.toFloat()),
         modifier = Modifier
             .fillMaxWidth()
             .testTag("player_scrubber"),
@@ -300,8 +312,19 @@ private fun ErrorBanner(
 @Composable
 private fun VideoPlayerContent(
     onBack: () -> Unit,
+    lastError: String?,
     viewModel: PlayerViewModel,
 ) {
+    // Capture the PlayerView so DisposableEffect can clear its surface listener on dispose.
+    val playerViewRef = remember { mutableStateOf<PlayerView?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            // Defensive: detach the player so Media3 can release surface listeners cleanly.
+            playerViewRef.value?.player = null
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -314,11 +337,13 @@ private fun VideoPlayerContent(
                     useController = true
                     // Attach the player; null-safe — attach again in update if needed
                     player = viewModel.getPlayer()
+                    playerViewRef.value = this
                 }
             },
             update = { playerView ->
                 // Re-attach whenever composition updates (e.g. after config change)
                 playerView.player = viewModel.getPlayer()
+                playerViewRef.value = playerView
             },
             modifier = Modifier.fillMaxSize(),
         )
@@ -334,6 +359,16 @@ private fun VideoPlayerContent(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.back_description),
                 tint = Color.White,
+            )
+        }
+
+        // Error banner — same component as audio mode for consistency
+        if (lastError != null) {
+            ErrorBanner(
+                message = lastError,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp),
             )
         }
     }
