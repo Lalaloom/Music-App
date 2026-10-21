@@ -36,7 +36,7 @@ class SongDaoTest {
 
     private fun song(
         title: String = "Test Song",
-        uri: String = "content://test/$title",
+        uri: String,
     ) = Song(
         title = title,
         artist = "Artist",
@@ -53,6 +53,9 @@ class SongDaoTest {
         val inserted = song(title = "Track A", uri = "content://test/a")
         val id = dao.insert(inserted)
         assertTrue("id should be > 0", id > 0)
+        val found = dao.findByUri(inserted.uri)
+        assertNotNull("inserted row should be retrievable by uri", found)
+        assertEquals("assigned id must round-trip", id, found!!.id)
     }
 
     @Test
