@@ -1,0 +1,40 @@
+# Ruflo local secrets and runtime data
+.env
+.env.local
+.env.*.local
+.claude-flow/data/
+.claude-flow/logs/
+.claude-flow/sessions/
+
+# Android / Gradle
+*.iml
+.gradle/
+local.properties
+.idea/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.hprof
+output.json
+
+# Keystores and secrets
+*.jks
+*.keystore
+keystore.properties
+google-services.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Superpowers / brainstorm artifacts (local-only scratch)
+.superpowers/
+
+# Editor
+.vscode/
+*.swp
