@@ -5,7 +5,7 @@ import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.cameronbatten.dadmusic.data.folder.FolderRegistry
+import com.cameronbatten.dadmusic.data.folder.FolderUriSource
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -19,7 +19,8 @@ import java.io.File
  *
  * Fixtures use [DocumentFile.fromFile] backed by [Context.filesDir] scratch files so that the
  * real DocumentFile traversal path is exercised without requiring a connected device with SAF
- * permissions.  [FolderRegistry] is stubbed via a thin fake.
+ * permissions.  [FolderUriSource] is supplied by a plain in-test fake — no mocking framework
+ * required.
  *
  * NOTE: Compile check only — full execution requires an emulator/device (Task 12 smoke).
  */
@@ -46,12 +47,12 @@ class FileScannerTest {
         scratchDir.resolve(path).also { it.parentFile?.mkdirs(); it.createNewFile() }
 
     /**
-     * Minimal [FolderRegistry] fake that returns [uris] from [resolvableUris] and throws on any
-     * suspend call (not needed for scanner tests).
+     * Minimal [FolderUriSource] fake that returns [uris] from [FolderUriSource.resolvableUris].
+     * No [Context] dependency — the interface is the only test seam needed.
      */
-    private fun registryOf(vararg uris: Uri): FolderRegistry {
+    private fun sourceOf(vararg uris: Uri): FolderUriSource {
         val uriList: List<Uri> = uris.toList()
-        return object : FolderRegistry(context) {
+        return object : FolderUriSource {
             override fun resolvableUris(): List<Uri> = uriList
         }
     }
@@ -71,7 +72,7 @@ class FileScannerTest {
 
         val scanner = FileScanner(
             context,
-            registryOf(
+            sourceOf(
                 Uri.fromFile(folderA),
                 Uri.fromFile(folderB),
             ),
@@ -96,7 +97,7 @@ class FileScannerTest {
         folder.resolve("notes.txt").createNewFile()
         folder.resolve("video.mp4").createNewFile()
 
-        val scanner = FileScanner(context, registryOf(Uri.fromFile(folder)))
+        val scanner = FileScanner(context, sourceOf(Uri.fromFile(folder)))
 
         val results = scanner.scanAll()
 
@@ -115,7 +116,7 @@ class FileScannerTest {
         touch("root/sub/deep.m4a")
         touch("root/sub/sub2/deeper.wav")
 
-        val scanner = FileScanner(context, registryOf(Uri.fromFile(root)))
+        val scanner = FileScanner(context, sourceOf(Uri.fromFile(root)))
 
         val results = scanner.scanAll()
 
@@ -137,7 +138,7 @@ class FileScannerTest {
 
         // Register the same folder URI twice — the scanner must not return duplicates.
         val folderUri = Uri.fromFile(folder)
-        val scanner = FileScanner(context, registryOf(folderUri, folderUri))
+        val scanner = FileScanner(context, sourceOf(folderUri, folderUri))
 
         val results = scanner.scanAll()
 

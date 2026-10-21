@@ -3,7 +3,7 @@ package com.cameronbatten.dadmusic.data.scan
 import android.content.Context
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
-import com.cameronbatten.dadmusic.data.folder.FolderRegistry
+import com.cameronbatten.dadmusic.data.folder.FolderUriSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -16,8 +16,8 @@ private val ALLOWED_EXTENSIONS = setOf(
 )
 
 /**
- * Recursively walks every SAF folder URI registered in [FolderRegistry] and returns a flat
- * list of music/video [DiscoveredFile]s.
+ * Recursively walks every SAF folder URI exposed by a [FolderUriSource] (in production,
+ * `FolderRegistry`) and returns a flat list of music/video [DiscoveredFile]s.
  *
  * ### Algorithm
  * For each resolvable URI:
@@ -35,7 +35,7 @@ private val ALLOWED_EXTENSIONS = setOf(
 @Singleton
 class FileScanner @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val folderRegistry: FolderRegistry,
+    private val folderUris: FolderUriSource,
 ) {
 
     /**
@@ -45,7 +45,7 @@ class FileScanner @Inject constructor(
      * Dispatches to [Dispatchers.IO]; safe to call from any coroutine context.
      */
     suspend fun scanAll(): List<DiscoveredFile> = withContext(Dispatchers.IO) {
-        val roots = folderRegistry.resolvableUris()
+        val roots = folderUris.resolvableUris()
         if (roots.isEmpty()) return@withContext emptyList()
 
         val seen = LinkedHashSet<String>()   // dedup by URI string
