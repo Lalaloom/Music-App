@@ -4,10 +4,11 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.cameronbatten.dadmusic.playback.SongLookup
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface SongDao {
+interface SongDao : SongLookup {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(song: Song): Long
 
@@ -22,4 +23,7 @@ interface SongDao {
 
     @Query("SELECT * FROM songs WHERE uri = :uri LIMIT 1")
     suspend fun findByUri(uri: String): Song?
+
+    @Query("SELECT * FROM songs WHERE id = :id LIMIT 1")
+    override suspend fun findById(id: Long): Song?
 }

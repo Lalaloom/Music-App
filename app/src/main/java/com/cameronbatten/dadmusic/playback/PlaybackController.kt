@@ -9,7 +9,6 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.cameronbatten.dadmusic.data.db.Song
-import com.cameronbatten.dadmusic.ui.library.PlaybackCommands
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -60,7 +59,7 @@ private const val POSITION_POLL_INTERVAL_MS = 500L
  */
 class PlaybackController @Inject constructor(
     @ApplicationContext private val context: Context,
-) : PlaybackCommands {
+) : PlaybackSession {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val _state = MutableStateFlow(PlaybackState())
@@ -109,7 +108,7 @@ class PlaybackController @Inject constructor(
     // ── Public API ────────────────────────────────────────────────────────────
 
     /** Continuous stream of playback state. */
-    fun state(): StateFlow<PlaybackState> = _state.asStateFlow()
+    override fun state(): StateFlow<PlaybackState> = _state.asStateFlow()
 
     /**
      * Load and play [song]. Suspends until the [MediaController] is connected.
@@ -144,25 +143,33 @@ class PlaybackController @Inject constructor(
         }
     }
 
-    fun pause() {
+    override fun pause() {
         mediaController?.pause()
     }
 
-    fun resume() {
+    override fun resume() {
         mediaController?.play()
     }
 
-    fun seekTo(ms: Long) {
+    override fun seekTo(ms: Long) {
         mediaController?.seekTo(ms)
     }
 
-    fun skipNext() {
+    override fun skipNext() {
         mediaController?.seekToNextMediaItem()
     }
 
-    fun skipPrevious() {
+    override fun skipPrevious() {
         mediaController?.seekToPreviousMediaItem()
     }
+
+    /**
+     * Returns the underlying [Player] for video-mode UI attachment.
+     *
+     * Returns null if the [MediaController] is not yet connected or has been released.
+     * The UI must not hold this reference beyond the owning Composable's lifetime.
+     */
+    override fun getPlayer(): Player? = mediaController
 
     /**
      * Release the controller and cancel the coroutine scope.

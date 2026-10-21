@@ -1,16 +1,15 @@
-package com.cameronbatten.dadmusic.ui.library
+package com.cameronbatten.dadmusic.playback
 
 import com.cameronbatten.dadmusic.data.db.Song
 
 /**
  * Narrow interface for triggering song playback.
  *
- * [com.cameronbatten.dadmusic.playback.PlaybackController] implements this interface.
- * Tests inject a [FakePlaybackCommands] instead.
+ * [PlaybackController] implements this interface.
+ * Tests inject a fake instead.
  *
  * Note: `release()` is intentionally excluded from this interface — ownership of
- * [PlaybackController] cleanup lives at the process level (see Option A decision
- * documented in [LibraryViewModel]).
+ * [PlaybackController] cleanup lives at the process level (see Option A decision).
  */
 interface PlaybackCommands {
     /**
