@@ -26,7 +26,7 @@ import javax.inject.Singleton
 @Singleton
 class MetadataReader @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
+) : MetadataSource {
 
     /**
      * Reads audio metadata from [uri].
@@ -35,7 +35,7 @@ class MetadataReader @Inject constructor(
      * If the file is corrupt, unreadable, or tagless, returns `FileMetadata(null, null, null, 0L)`.
      * Never throws.
      */
-    suspend fun read(uri: Uri): FileMetadata = withContext(Dispatchers.IO) {
+    override suspend fun read(uri: Uri): FileMetadata = withContext(Dispatchers.IO) {
         val retriever = MediaMetadataRetriever()
         try {
             runCatching { retriever.setDataSource(context, uri) }

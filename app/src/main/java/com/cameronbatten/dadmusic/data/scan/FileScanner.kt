@@ -36,7 +36,7 @@ private val ALLOWED_EXTENSIONS = setOf(
 class FileScanner @Inject constructor(
     @ApplicationContext private val context: Context,
     private val folderUris: FolderUriSource,
-) {
+) : FileScannerSource {
 
     /**
      * Returns a deduplicated list of all [DiscoveredFile]s found under the registered folders.
@@ -44,7 +44,7 @@ class FileScanner @Inject constructor(
      *
      * Dispatches to [Dispatchers.IO]; safe to call from any coroutine context.
      */
-    suspend fun scanAll(): List<DiscoveredFile> = withContext(Dispatchers.IO) {
+    override suspend fun scanAll(): List<DiscoveredFile> = withContext(Dispatchers.IO) {
         val roots = folderUris.resolvableUris()
         if (roots.isEmpty()) return@withContext emptyList()
 
