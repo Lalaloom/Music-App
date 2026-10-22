@@ -6,6 +6,7 @@ import com.cameronbatten.dadmusic.data.db.LyricsStatus
 import com.cameronbatten.dadmusic.data.db.SongDao
 import com.cameronbatten.dadmusic.lyrics.BulkLyricsFetchJob
 import com.cameronbatten.dadmusic.lyrics.FetchProgress
+import com.cameronbatten.dadmusic.preferences.EndBehaviour
 import com.cameronbatten.dadmusic.preferences.FontSizePreset
 import com.cameronbatten.dadmusic.preferences.UserPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,6 +32,9 @@ class SettingsViewModel @Inject constructor(
     val fontSize: StateFlow<FontSizePreset> = userPreferences.fontSizePreset
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FontSizePreset.MEDIUM)
 
+    val onSongEnded: StateFlow<EndBehaviour> = userPreferences.onSongEnded
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), EndBehaviour.PAUSE)
+
     private val _fetchProgress = MutableStateFlow<FetchProgress?>(null)
     val fetchProgress: StateFlow<FetchProgress?> = _fetchProgress.asStateFlow()
 
@@ -42,6 +46,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setFontSize(preset: FontSizePreset) {
         viewModelScope.launch { userPreferences.setFontSizePreset(preset) }
+    }
+
+    fun setOnSongEnded(behaviour: EndBehaviour) {
+        viewModelScope.launch { userPreferences.setOnSongEnded(behaviour) }
     }
 
     /**

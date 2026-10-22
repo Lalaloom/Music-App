@@ -23,6 +23,9 @@ enum class FontSizePreset(val currentLineSp: Int, val neighbourLineSp: Int) {
     LARGE(80, 28),
 }
 
+/** What the player does when the current song finishes playing to the end. */
+enum class EndBehaviour { PAUSE, AUTO_ADVANCE, REPEAT }
+
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_prefs")
 
 /**
@@ -62,9 +65,21 @@ class UserPreferences @Inject constructor(
         store.edit { it[ONBOARDING_COMPLETED_KEY] = true }
     }
 
+    val onSongEnded: Flow<EndBehaviour> = store.data
+        .catch { e -> if (e is IOException) emit(androidx.datastore.preferences.core.emptyPreferences()) else throw e }
+        .map {
+            val name = it[END_BEHAVIOUR_KEY] ?: EndBehaviour.PAUSE.name
+            runCatching { EndBehaviour.valueOf(name) }.getOrDefault(EndBehaviour.PAUSE)
+        }
+
+    suspend fun setOnSongEnded(behaviour: EndBehaviour) {
+        store.edit { it[END_BEHAVIOUR_KEY] = behaviour.name }
+    }
+
     private companion object {
         val LYRIC_OFFSET_KEY = longPreferencesKey("lyric_offset_ms")
         val FONT_SIZE_KEY = stringPreferencesKey("font_size_preset")
         val ONBOARDING_COMPLETED_KEY = booleanPreferencesKey("onboarding_completed")
+        val END_BEHAVIOUR_KEY = stringPreferencesKey("end_behaviour")
     }
 }

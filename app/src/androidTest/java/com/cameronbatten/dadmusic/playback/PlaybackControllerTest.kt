@@ -5,10 +5,14 @@ import android.content.Context
 import android.content.Intent
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.cameronbatten.dadmusic.data.db.AppDatabase
 import com.cameronbatten.dadmusic.data.db.FileType
 import com.cameronbatten.dadmusic.data.db.Song
+import com.cameronbatten.dadmusic.preferences.UserPreferences
+import com.cameronbatten.dadmusic.setlist.LiveQueueManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -85,15 +89,27 @@ class PlaybackControllerTest {
     )
 
     private lateinit var controller: PlaybackController
+    private lateinit var db: AppDatabase
 
     @Before
     fun setUp() {
-        controller = PlaybackController(context)
+        db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries()
+            .build()
+        val userPreferences = UserPreferences(context)
+        val liveQueueManager = LiveQueueManager(db.liveQueueDao(), db.setlistDao())
+        controller = PlaybackController(
+            context = context,
+            userPreferences = userPreferences,
+            liveQueueManager = liveQueueManager,
+            songLookup = db.songDao(),
+        )
     }
 
     @After
     fun tearDown() {
         controller.release()
+        db.close()
     }
 
     // ── Test 1 ────────────────────────────────────────────────────────────────

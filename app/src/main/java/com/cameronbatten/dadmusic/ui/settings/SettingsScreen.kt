@@ -35,7 +35,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cameronbatten.dadmusic.BuildConfig
 import com.cameronbatten.dadmusic.R
+import com.cameronbatten.dadmusic.preferences.EndBehaviour
 import com.cameronbatten.dadmusic.preferences.FontSizePreset
 import kotlin.math.roundToInt
 
@@ -50,6 +52,7 @@ fun SettingsScreen(
     val offset by viewModel.lyricOffsetMs.collectAsStateWithLifecycle()
     val fontSize by viewModel.fontSize.collectAsStateWithLifecycle()
     val fetchProgress by viewModel.fetchProgress.collectAsStateWithLifecycle()
+    val endBehaviour by viewModel.onSongEnded.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -118,6 +121,52 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+
+            Spacer(Modifier.height(24.dp))
+
+            SectionHeader(stringResource(R.string.settings_section_playback))
+            EndBehaviourChips(
+                current = endBehaviour,
+                onPick = viewModel::setOnSongEnded,
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            SectionHeader(stringResource(R.string.settings_section_about))
+            Text(
+                text = stringResource(R.string.settings_about_app, BuildConfig.VERSION_NAME),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.settings_about_lyrics_credit),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun EndBehaviourChips(current: EndBehaviour, onPick: (EndBehaviour) -> Unit) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        EndBehaviour.entries.forEach { behaviour ->
+            FilterChip(
+                selected = behaviour == current,
+                onClick = { onPick(behaviour) },
+                label = {
+                    Text(
+                        text = when (behaviour) {
+                            EndBehaviour.PAUSE -> stringResource(R.string.settings_end_pause)
+                            EndBehaviour.AUTO_ADVANCE -> stringResource(R.string.settings_end_auto_advance)
+                            EndBehaviour.REPEAT -> stringResource(R.string.settings_end_repeat)
+                        },
+                    )
+                },
+            )
         }
     }
 }

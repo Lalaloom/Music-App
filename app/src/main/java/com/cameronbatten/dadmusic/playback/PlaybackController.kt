@@ -9,6 +9,9 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.cameronbatten.dadmusic.data.db.Song
+import com.cameronbatten.dadmusic.preferences.EndBehaviour
+import com.cameronbatten.dadmusic.preferences.UserPreferences
+import com.cameronbatten.dadmusic.setlist.LiveQueueManager
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -22,6 +25,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -61,6 +65,9 @@ private const val POSITION_POLL_INTERVAL_MS = 500L
 @Singleton
 class PlaybackController @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val userPreferences: UserPreferences,
+    private val liveQueueManager: LiveQueueManager,
+    private val songLookup: SongLookup,
 ) : PlaybackSession {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -100,6 +107,34 @@ class PlaybackController @Inject constructor(
                 lastError = error.message,
             )
             stopPositionPolling()
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            if (playbackState == Player.STATE_ENDED) {
+                scope.launch { dispatchEndBehaviour() }
+            }
+        }
+    }
+
+    private suspend fun dispatchEndBehaviour() {
+        when (userPreferences.onSongEnded.first()) {
+            EndBehaviour.PAUSE -> {
+                // ExoPlayer already parked at the end; nothing more to do.
+            }
+            EndBehaviour.REPEAT -> {
+                mediaController?.let {
+                    it.seekTo(0L)
+                    it.play()
+                }
+            }
+            EndBehaviour.AUTO_ADVANCE -> {
+                val currentId = _state.value.currentSongId ?: return
+                val queue = liveQueueManager.snapshot()
+                val idx = queue.indexOfFirst { it.songId == currentId }
+                val next = queue.getOrNull(idx + 1) ?: return
+                val song = songLookup.findById(next.songId) ?: return
+                play(song)
+            }
         }
     }
 
