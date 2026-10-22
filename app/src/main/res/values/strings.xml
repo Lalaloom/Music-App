@@ -3,9 +3,11 @@
     <string name="app_name">Dad Music</string>
 
     <!-- Library screen -->
-    <string name="library_title">Your Library</string>
+    <string name="library_title">Dad Music</string>
     <string name="library_empty_prompt">No songs yet. Pick a folder to get started.</string>
     <string name="library_pick_folder_button">Pick a folder</string>
+    <string name="library_song_type_audio">Audio track</string>
+    <string name="library_song_type_video">Video track</string>
 
     <!-- Folder picker screen -->
     <string name="folders_title">Your music folders</string>
@@ -15,7 +17,10 @@
     <string name="folders_scanning">Scanning…</string>
     <string name="folders_done_button">Done</string>
     <string name="folders_empty_prompt">No folders added yet</string>
-    <string name="folders_import_summary">Added %1$d, updated %2$d, skipped %3$d</string>
+    <string name="folders_import_summary">Added %1$d, updated %2$d, removed %3$d</string>
+
+    <!-- Mini-player (library) -->
+    <string name="mini_player_open_description">Open full player</string>
 
     <!-- Player screen -->
     <string name="player_play_pause_description">Play / Pause</string>

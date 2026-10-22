@@ -11,30 +11,42 @@ import javax.inject.Singleton
 /**
  * Summarises the result of one [LibraryImporter.importAll] run.
  *
- * @param added   Files inserted for the first time (no prior row with this URI).
- * @param updated Files whose URI was already in the DB — the row was replaced (REPLACE strategy).
- * @param skipped Files that were intentionally not imported. Always 0 in Milestone 1;
- *                the field is present to avoid a breaking API change when filtering is added.
+ * File renames are counted inside [updated] (same row, new URI) — not as `added + removed`.
+ *
+ * @param added   Files inserted for the first time (no prior row with this URI or matching size+duration).
+ * @param updated Rows re-upserted for an existing URI, OR rows whose URI changed because the user
+ *                renamed the underlying file (detected via matching size + duration).
+ * @param removed Rows deleted because the underlying file is no longer present and no rename match was found.
+ * @param skipped Files intentionally not imported. Always 0 in Milestone 1; present to avoid a
+ *                breaking API change when filtering is added.
  */
-data class ImportResult(val added: Int, val updated: Int, val skipped: Int)
+data class ImportResult(
+    val added: Int,
+    val updated: Int,
+    val removed: Int = 0,
+    val skipped: Int = 0,
+)
 
 private val VIDEO_EXTENSIONS = setOf("mp4", "mkv", "webm")
 
 /**
- * Orchestrates the import pipeline: scan → parse → read metadata → upsert into DB.
+ * Orchestrates the import pipeline: scan → parse → read metadata → upsert → prune.
  *
- * ### FilenameParser injection
- * [FilenameParser] is declared as a Kotlin `object`; Hilt cannot inject singletons that are
- * object declarations.  Rather than adding an artificial `@Provides` wrapper, [LibraryImporter]
- * references [FilenameParser] directly inside [importAll].  The constructor therefore takes only
- * the three injected collaborators: [scanner], [metadataReader], and [songDao].
+ * ### Rename detection
+ * SAF document URIs embed the file's display name on most providers, so renaming
+ * a file in a file manager produces a brand-new URI. If we only matched on URI,
+ * a rename would show up as `added + removed`, duplicating the song in the UI
+ * for the user who just wanted to retitle it.
  *
- * ### Interface extraction
- * [FileScanner] and [MetadataReader] are both final classes with `@ApplicationContext`
- * dependencies that cannot be instantiated in unit tests.  A narrow interface was extracted for
- * each ([FileScannerSource], [MetadataSource]) so that instrumented tests can supply lightweight
- * fakes without real filesystem access or media files.  Production bindings live in
- * [com.cameronbatten.dadmusic.di.ScanBindsModule].
+ * To avoid that, the importer loads every existing DB row up front, then — for
+ * each scanned file whose URI isn't already in the DB — looks for an orphaned
+ * row with the same `sizeBytes` AND `durationMs`. A match is treated as a rename:
+ * the existing row's `id` and `dateAdded` are preserved, and its `uri`/`title`/
+ * other fields are refreshed from the new file. Rows left orphaned at the end
+ * are genuinely gone from disk and are deleted.
+ *
+ * Collisions require two files with identical byte count and identical sub-second
+ * duration — vanishingly unlikely in a personal music library, acceptable for M1.
  */
 @Singleton
 class LibraryImporter @Inject constructor(
@@ -43,21 +55,19 @@ class LibraryImporter @Inject constructor(
     private val songDao: SongDao,
 ) : LibraryImporterSource {
 
-    /**
-     * Scans all registered folders, merges embedded metadata with filename-parsed fallbacks,
-     * and upserts every discovered file into the database.
-     *
-     * Dispatches to [Dispatchers.IO].
-     *
-     * @return [ImportResult] with counts of added, updated, and skipped files.
-     */
     override suspend fun importAll(): ImportResult = withContext(Dispatchers.IO) {
         val files = scanner.scanAll()
+
+        // All current rows keyed by URI; we remove entries as we match them so
+        // what's left at the end is what the user removed from disk.
+        val orphans: MutableMap<String, Song> =
+            songDao.getAll().associateBy { it.uri }.toMutableMap()
 
         var added = 0
         var updated = 0
 
         for (file in files) {
+            val uriString = file.uri.toString()
             val metadata = metadataReader.read(file.uri)
             val parsed = FilenameParser.parse(file.displayName)
 
@@ -76,25 +86,72 @@ class LibraryImporter @Inject constructor(
                 (metadata.title != null && metadata.artist != null) ||
                 (parsed.title != null && parsed.artist != null)
 
-            val uriString = file.uri.toString()
-            val existing = songDao.findByUri(uriString)
+            // 1. Same URI → update in place (preserve id + dateAdded).
+            val sameUri = orphans.remove(uriString)
+            if (sameUri != null) {
+                songDao.insert(
+                    sameUri.copy(
+                        title = title,
+                        artist = artist,
+                        album = album,
+                        fileType = fileType,
+                        durationMs = durationMs,
+                        sizeBytes = file.sizeBytes,
+                        confirmed = confirmed,
+                    ),
+                )
+                updated++
+                continue
+            }
 
-            val song = Song(
-                title = title,
-                artist = artist,
-                album = album,
-                uri = uriString,
-                fileType = fileType,
-                durationMs = durationMs,
-                dateAdded = System.currentTimeMillis(),
-                confirmed = confirmed,
+            // 2. No URI match — look for a rename twin (same size + duration).
+            //    Guard sizeBytes > 0 to avoid collapsing multiple truly-unknown entries.
+            val renameEntry = orphans.entries.firstOrNull { (_, s) ->
+                s.sizeBytes > 0L &&
+                    s.sizeBytes == file.sizeBytes &&
+                    s.durationMs == durationMs
+            }
+            if (renameEntry != null) {
+                orphans.remove(renameEntry.key)
+                songDao.insert(
+                    renameEntry.value.copy(
+                        uri = uriString,
+                        title = title,
+                        artist = artist,
+                        album = album,
+                        fileType = fileType,
+                        durationMs = durationMs,
+                        sizeBytes = file.sizeBytes,
+                        confirmed = confirmed,
+                    ),
+                )
+                updated++
+                continue
+            }
+
+            // 3. Genuinely new file.
+            songDao.insert(
+                Song(
+                    title = title,
+                    artist = artist,
+                    album = album,
+                    uri = uriString,
+                    fileType = fileType,
+                    durationMs = durationMs,
+                    dateAdded = System.currentTimeMillis(),
+                    confirmed = confirmed,
+                    sizeBytes = file.sizeBytes,
+                ),
             )
-
-            songDao.insert(song)
-
-            if (existing != null) updated++ else added++
+            added++
         }
 
-        ImportResult(added = added, updated = updated, skipped = 0)
+        // 4. Prune: whatever's left is gone from disk.
+        val removedCount = orphans.size
+        for (dbUri in orphans.keys) {
+            songDao.deleteByUri(dbUri)
+        }
+
+        ImportResult(added = added, updated = updated, removed = removedCount, skipped = 0)
     }
 }

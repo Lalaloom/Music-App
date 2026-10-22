@@ -3,10 +3,15 @@ package com.cameronbatten.dadmusic.ui.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cameronbatten.dadmusic.data.db.Song
-import com.cameronbatten.dadmusic.playback.PlaybackCommands
+import com.cameronbatten.dadmusic.playback.PlaybackSession
+import com.cameronbatten.dadmusic.playback.PlaybackState
+import com.cameronbatten.dadmusic.playback.SongLookup
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -14,34 +19,24 @@ import javax.inject.Inject
 /**
  * ViewModel for [LibraryScreen].
  *
- * Exposes the live song list from [SongSource] and routes tap events to
- * [PlaybackCommands].
+ * Exposes the live song list from [SongSource], live playback state so the library
+ * can render a persistent mini-player, and routes tap events to [PlaybackSession].
  *
- * ## PlaybackController release — Option A
+ * ## PlaybackSession release — Option A
  *
- * [PlaybackCommands] is a narrow interface that does NOT expose `release()`.
- * The concrete [com.cameronbatten.dadmusic.playback.PlaybackController] is a
- * `@Singleton`; its lifecycle is tied to the process, not to this ViewModel.
+ * [PlaybackSession]'s concrete impl ([com.cameronbatten.dadmusic.playback.PlaybackController])
+ * is a `@Singleton`; its lifecycle is tied to the process, not to this ViewModel.
  * Cleanup occurs in [com.cameronbatten.dadmusic.playback.PlaybackService.onDestroy]
  * when the process is torn down.
- *
- * This means music continues playing through configuration changes and screen
- * navigation — the correct behaviour for a media app.  Two ViewModels (Library +
- * Player) can safely hold a reference to the same singleton without racing on
- * `release()`.
  */
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
     songSource: SongSource,
-    private val playbackCommands: PlaybackCommands,
+    private val playbackSession: PlaybackSession,
+    private val songLookup: SongLookup,
 ) : ViewModel() {
 
-    /**
-     * The live list of songs ordered by title ASC.
-     *
-     * Exposed as a `val` so recomposition does not create a new upstream [stateIn]
-     * subscription on every call.
-     */
+    /** The live list of songs ordered by title ASC. */
     val songs: StateFlow<List<Song>> = songSource.observeAll()
         .stateIn(
             scope = viewModelScope,
@@ -49,13 +44,36 @@ class LibraryViewModel @Inject constructor(
             initialValue = emptyList(),
         )
 
-    /**
-     * Called when the user taps a song row. Launches playback on [viewModelScope]
-     * so the caller does not need to await it.
-     */
+    /** Live playback state — drives mini-player visibility and play/pause icon. */
+    val playbackState: StateFlow<PlaybackState> = playbackSession.state()
+
+    /** The [Song] currently loaded in the player, or null when idle. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val currentSong: StateFlow<Song?> = playbackState
+        .flatMapLatest { ps ->
+            flow {
+                emit(ps.currentSongId?.let { songLookup.findById(it) })
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
+    /** Called when the user taps a song row. */
     fun onSongTapped(song: Song) {
         viewModelScope.launch {
-            playbackCommands.play(song)
+            playbackSession.play(song)
+        }
+    }
+
+    /** Toggle play/pause from the mini-player. */
+    fun playPause() {
+        if (playbackState.value.isPlaying) {
+            playbackSession.pause()
+        } else {
+            playbackSession.resume()
         }
     }
 }

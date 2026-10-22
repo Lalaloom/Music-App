@@ -103,7 +103,7 @@ fun FolderPickerScreen(
                             R.string.folders_import_summary,
                             result.added,
                             result.updated,
-                            result.skipped,
+                            result.removed,
                         ),
                         modifier = Modifier.padding(vertical = 4.dp),
                     )

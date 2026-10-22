@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Pause
@@ -71,7 +73,13 @@ fun PlayerScreen(
     if (isVideo) {
         VideoPlayerContent(
             onBack = onBack,
+            title = currentSong?.title ?: stringResource(R.string.player_unknown_title),
+            isPlaying = state.isPlaying,
+            positionMs = state.positionMs,
+            durationMs = state.durationMs,
             lastError = state.lastError,
+            onPlayPause = { viewModel.playPause() },
+            onSeek = { ms -> viewModel.seek(ms) },
             viewModel = viewModel,
         )
     } else {
@@ -312,7 +320,13 @@ private fun ErrorBanner(
 @Composable
 private fun VideoPlayerContent(
     onBack: () -> Unit,
+    title: String,
+    isPlaying: Boolean,
+    positionMs: Long,
+    durationMs: Long,
     lastError: String?,
+    onPlayPause: () -> Unit,
+    onSeek: (Long) -> Unit,
     viewModel: PlayerViewModel,
 ) {
     // Capture the PlayerView so DisposableEffect can clear its surface listener on dispose.
@@ -330,12 +344,14 @@ private fun VideoPlayerContent(
             .fillMaxSize()
             .testTag("player_video_view"),
     ) {
-        // Media3 PlayerView fills the entire screen; controls auto-fade
+        // Media3 PlayerView fills the entire screen. We disable its built-in controller
+        // because its auto-fading overlay is not discoverable mid-performance — a karaoke
+        // user needs to be able to glance down and hit pause instantly. Our own always-
+        // visible overlay below provides the same transport, same test tags, same colours.
         AndroidView(
             factory = { context ->
                 PlayerView(context).apply {
-                    useController = true
-                    // Attach the player; null-safe — attach again in update if needed
+                    useController = false
                     player = viewModel.getPlayer()
                     playerViewRef.value = this
                 }
@@ -348,18 +364,76 @@ private fun VideoPlayerContent(
             modifier = Modifier.fillMaxSize(),
         )
 
-        // Back button overlay
-        IconButton(
+        // Back button overlay (semi-opaque so it's visible over any video frame).
+        // statusBarsPadding keeps the chip clear of the status bar / notch.
+        Surface(
             onClick = onBack,
+            shape = MaterialTheme.shapes.extraLarge,
+            color = Color.Black.copy(alpha = 0.45f),
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(8.dp),
+                .statusBarsPadding()
+                .padding(12.dp)
+                .size(44.dp),
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.back_description),
-                tint = Color.White,
-            )
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.back_description),
+                    tint = Color.White,
+                )
+            }
+        }
+
+        // Always-visible transport bar pinned above the system nav bar.
+        // navigationBarsPadding ensures the play/pause button doesn't sit under the
+        // gesture pill / 3-button bar on devices with on-screen navigation.
+        Surface(
+            color = Color.Black.copy(alpha = 0.55f),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .navigationBarsPadding(),
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    modifier = Modifier.testTag("player_title"),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Surface(
+                        onClick = onPlayPause,
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .size(PLAY_PAUSE_SIZE)
+                            .testTag("player_play_pause"),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = stringResource(R.string.player_play_pause_description),
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        }
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        Scrubber(
+                            positionMs = positionMs,
+                            durationMs = durationMs,
+                            onSeek = onSeek,
+                        )
+                    }
+                }
+            }
         }
 
         // Error banner — same component as audio mode for consistency
@@ -368,7 +442,7 @@ private fun VideoPlayerContent(
                 message = lastError,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(16.dp),
+                    .padding(bottom = 120.dp, start = 16.dp, end = 16.dp),
             )
         }
     }

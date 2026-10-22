@@ -3,15 +3,18 @@ package com.cameronbatten.dadmusic.ui.library
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.media3.common.Player
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.cameronbatten.dadmusic.data.db.FileType
 import com.cameronbatten.dadmusic.data.db.Song
-import com.cameronbatten.dadmusic.playback.PlaybackCommands
+import com.cameronbatten.dadmusic.playback.PlaybackSession
+import com.cameronbatten.dadmusic.playback.PlaybackState
+import com.cameronbatten.dadmusic.playback.SongLookup
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -36,23 +39,37 @@ private class FakeSongSource(
     }
 }
 
-/**
- * Fake [PlaybackCommands] that records which songs were played.
- */
-private class FakePlaybackCommands : PlaybackCommands {
+/** Fake [PlaybackSession] that records play invocations and holds a mutable state. */
+private class FakePlaybackSession(
+    initialState: PlaybackState = PlaybackState(),
+) : PlaybackSession {
     val playedSongs = mutableListOf<Song>()
+    private val _state = MutableStateFlow(initialState)
 
+    override fun state(): StateFlow<PlaybackState> = _state
     override suspend fun play(song: Song) {
         playedSongs.add(song)
     }
+    override fun pause() {}
+    override fun resume() {}
+    override fun seekTo(ms: Long) {}
+    override fun skipNext() {}
+    override fun skipPrevious() {}
+    override fun getPlayer(): Player? = null
+}
+
+/** Fake [SongLookup] that returns null (no mini-player). */
+private class FakeSongLookup : SongLookup {
+    override suspend fun findById(id: Long): Song? = null
 }
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 
 private fun buildViewModel(
     source: FakeSongSource = FakeSongSource(),
-    commands: FakePlaybackCommands = FakePlaybackCommands(),
-): LibraryViewModel = LibraryViewModel(source, commands)
+    session: FakePlaybackSession = FakePlaybackSession(),
+    lookup: FakeSongLookup = FakeSongLookup(),
+): LibraryViewModel = LibraryViewModel(source, session, lookup)
 
 private fun makeSong(
     id: Long,
@@ -80,10 +97,6 @@ class LibraryScreenTest {
 
     // ── 1. shows_songs_from_dao ───────────────────────────────────────────────
 
-    /**
-     * When the DAO emits a non-empty list the screen must show each song title
-     * in the lazy column.
-     */
     @Test
     fun shows_songs_from_dao() {
         val song1 = makeSong(id = 1, title = "Bohemian Rhapsody", artist = "Queen")
@@ -113,10 +126,6 @@ class LibraryScreenTest {
 
     // ── 2. empty_state_prompts_user_to_add_folders ────────────────────────────
 
-    /**
-     * When the DAO emits an empty list the empty-state prompt and CTA button
-     * must both be visible.
-     */
     @Test
     fun empty_state_prompts_user_to_add_folders() {
         val vm = buildViewModel(source = FakeSongSource(emptyList()))
@@ -142,17 +151,12 @@ class LibraryScreenTest {
 
     // ── 3. tap_row_invokes_playbackController_play_and_navigates ─────────────
 
-    /**
-     * Tapping a song row must:
-     *   a) call [PlaybackCommands.play] with the correct song, and
-     *   b) invoke the [onSongPlaying] callback (navigation to player).
-     */
     @Test
     fun tap_row_invokes_playbackController_play_and_navigates() {
         val song = makeSong(id = 42, title = "Stairway to Heaven", artist = "Led Zeppelin")
         val source = FakeSongSource(listOf(song))
-        val fakeCommands = FakePlaybackCommands()
-        val vm = buildViewModel(source = source, commands = fakeCommands)
+        val session = FakePlaybackSession()
+        val vm = buildViewModel(source = source, session = session)
 
         var navigated = false
 
@@ -173,9 +177,9 @@ class LibraryScreenTest {
         // Navigation callback must have fired
         assertTrue("onSongPlaying was not called", navigated)
 
-        // PlaybackCommands.play() must have been called with the correct song
-        assertEquals(1, fakeCommands.playedSongs.size)
-        assertEquals(42L, fakeCommands.playedSongs.first().id)
-        assertEquals("Stairway to Heaven", fakeCommands.playedSongs.first().title)
+        // PlaybackSession.play() must have been called with the correct song
+        assertEquals(1, session.playedSongs.size)
+        assertEquals(42L, session.playedSongs.first().id)
+        assertEquals("Stairway to Heaven", session.playedSongs.first().title)
     }
 }

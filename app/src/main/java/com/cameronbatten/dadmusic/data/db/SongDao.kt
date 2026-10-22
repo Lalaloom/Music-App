@@ -18,6 +18,12 @@ interface SongDao : SongLookup {
     @Query("SELECT * FROM songs ORDER BY title ASC")
     fun observeAll(): Flow<List<Song>>
 
+    @Query("SELECT uri FROM songs")
+    suspend fun allUris(): List<String>
+
+    @Query("SELECT * FROM songs")
+    suspend fun getAll(): List<Song>
+
     @Query("DELETE FROM songs WHERE uri = :uri")
     suspend fun deleteByUri(uri: String)
 

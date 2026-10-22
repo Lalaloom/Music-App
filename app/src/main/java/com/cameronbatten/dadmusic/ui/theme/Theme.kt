@@ -5,10 +5,11 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryPurple,
+    primary = AccentGreen,
     onPrimary = OnPrimary,
-    primaryContainer = PrimaryPurpleVariant,
-    secondary = SecondaryTeal,
+    primaryContainer = AccentGreenDeep,
+    onPrimaryContainer = OnPrimaryContainer,
+    secondary = SecondaryGrey,
     onSecondary = OnSecondary,
     background = DarkBackground,
     onBackground = OnBackground,

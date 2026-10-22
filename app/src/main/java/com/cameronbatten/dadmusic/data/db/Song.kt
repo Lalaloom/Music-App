@@ -21,4 +21,8 @@ data class Song(
     val durationMs: Long,
     val dateAdded: Long,
     val confirmed: Boolean,
+    // sizeBytes is used to detect file renames: when a scan finds a URI we
+    // haven't seen before, we check whether an orphaned row has the same size +
+    // duration and treat that as the same file under a new name.
+    val sizeBytes: Long = 0L,
 )

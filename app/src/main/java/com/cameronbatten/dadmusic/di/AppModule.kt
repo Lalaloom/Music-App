@@ -21,11 +21,13 @@ object AppModule {
 
     @Provides
     @Singleton
-    // TODO(M2): add a Migration strategy (addMigrations / fallbackToDestructiveMigration) before
-    //           bumping the Room schema version; omitting migrations on a version bump will crash
-    //           on devices that have the previous version installed.
+    // TODO(M2): write a proper Migration for the sizeBytes column added in v2. For M1 we fall
+    //           back to destructive migration — the app is pre-release and the only data is a
+    //           song index that can be rebuilt in seconds via "Scan now".
     fun provideAppDatabase(@ApplicationContext ctx: Context): AppDatabase =
-        Room.databaseBuilder(ctx, AppDatabase::class.java, "dad_music.db").build()
+        Room.databaseBuilder(ctx, AppDatabase::class.java, "dad_music.db")
+            .fallbackToDestructiveMigration()
+            .build()
 
     @Provides
     fun provideSongDao(db: AppDatabase): SongDao = db.songDao()
