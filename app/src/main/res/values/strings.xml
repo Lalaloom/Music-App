@@ -22,6 +22,21 @@
     <!-- Mini-player (library) -->
     <string name="mini_player_open_description">Open full player</string>
 
+    <!-- Navigator -->
+    <string name="navigator_setlist_dropdown_cd">Switch setlist</string>
+    <string name="navigator_library_option">Library</string>
+    <string name="navigator_queue_empty_setlist">This setlist has no songs yet.</string>
+    <string name="navigator_queue_empty_library">Pick a song from the library to start a queue.</string>
+    <string name="navigator_save_changes">Save changes to %1$s</string>
+    <string name="navigator_move_up_cd">Move earlier</string>
+    <string name="navigator_move_down_cd">Move later</string>
+    <string name="navigator_remove_from_queue_cd">Remove from queue</string>
+    <string name="navigator_tab_setlist">Setlist</string>
+    <string name="navigator_tab_library">Library</string>
+
+    <!-- Search pane (Task 10 stub, filled in Task 11) -->
+    <string name="search_pane_stub">Library search coming next.</string>
+
     <!-- Player screen -->
     <string name="player_play_pause_description">Play / Pause</string>
     <string name="player_skip_next_description">Skip to next song</string>
