@@ -5,6 +5,9 @@ import com.cameronbatten.dadmusic.data.db.Lyrics
 import com.cameronbatten.dadmusic.data.db.LyricsDao
 import com.cameronbatten.dadmusic.data.db.LyricsSource
 import com.cameronbatten.dadmusic.data.db.LyricsStatus
+import com.cameronbatten.dadmusic.data.db.Setlist
+import com.cameronbatten.dadmusic.data.db.SetlistDao
+import com.cameronbatten.dadmusic.data.db.SetlistEntry
 import com.cameronbatten.dadmusic.data.db.Song
 import com.cameronbatten.dadmusic.data.db.SongDao
 import com.cameronbatten.dadmusic.lyrics.LrcParser
@@ -18,12 +21,13 @@ import javax.inject.Singleton
  *
  * File renames are counted inside [updated] (same row, new URI) — not as `added + removed`.
  *
- * @param added   Files inserted for the first time (no prior row with this URI or matching size+duration).
- * @param updated Rows re-upserted for an existing URI, OR rows whose URI changed because the user
- *                renamed the underlying file (detected via matching size + duration).
- * @param removed Rows deleted because the underlying file is no longer present and no rename match was found.
- * @param skipped Files intentionally not imported. Always 0 in Milestone 1; present to avoid a
- *                breaking API change when filtering is added.
+ * @param added   Files inserted for the first time.
+ * @param updated Rows re-upserted for an existing URI or where a rename was detected
+ *                via matching size + duration.
+ * @param removed Rows deleted because the underlying file is no longer present and no
+ *                rename match was found.
+ * @param skipped Files intentionally not imported. Always 0 in Milestone 1; present
+ *                to avoid a breaking API change when filtering is added.
  */
 data class ImportResult(
     val added: Int,
@@ -33,31 +37,32 @@ data class ImportResult(
 )
 
 private val VIDEO_EXTENSIONS = setOf("mp4", "mkv", "webm")
+private const val SETLIST_POSITION_STEP = 1000
 
 /**
- * Orchestrates the import pipeline: scan → parse → read metadata → upsert → sidecar → prune.
+ * Orchestrates the import pipeline: scan → parse → read metadata → upsert songs →
+ * adopt sidecar lyrics → sync setlists per folder → prune removed songs/setlists.
  *
  * ### Rename detection
- * SAF document URIs embed the file's display name on most providers, so renaming
- * a file produces a brand-new URI. The importer loads every existing DB row up
- * front, then — for each scanned file whose URI isn't already in the DB — looks
- * for an orphaned row with the same `sizeBytes` AND `durationMs`. A match is
- * treated as a rename: the existing row's `id` + `dateAdded` are preserved and
- * other fields refresh from disk. Rows left orphaned at the end are pruned.
+ * SAF document URIs embed display names on most providers, so renaming a file
+ * produces a new URI. The importer loads every DB row up front; for a scanned
+ * file whose URI isn't in the DB it looks for an orphan with matching
+ * (sizeBytes, durationMs) and treats a hit as a rename — preserves `id` and
+ * `dateAdded`, refreshes other columns.
  *
- * ### Sidecar adoption (spec §5.1)
- * If a `<basename>.lrc` sits next to a music file during scan the scanner attaches
- * its URI to [DiscoveredFile.lrcSidecarUri]. The importer reads the sidecar's
- * content, parses it just to decide `hasTimings`, and upserts a [Lyrics] row with
- * `source = DISK_SIDECAR`. The song's `lyricsStatus` becomes `ADOPTED_FROM_DISK`
- * so the later LRCLIB fetch job (Task 6) skips it. The user's disk `.lrc` is
- * never overwritten — we only read it.
+ * ### Folder → setlist bridge (Task 8)
+ * Every file carries its root `rootFolderUri` + `rootFolderName`. After the
+ * song-upsert pass the importer groups scanned songs by their root folder,
+ * upserts a Setlist for each (keyed by `sourceFolderUri`), and replaces that
+ * setlist's entries with the current song set in scan order. Setlists for
+ * folders no longer present in the scan output are deleted — this is how
+ * unregistering a folder makes its setlist disappear.
  *
- * ### Why [SongDao.upsert] and not `insert`
+ * ### Why [SongDao.upsert] not `insert`
  * `insert` is `OnConflict.REPLACE`, which `DELETE + INSERT`s on a row collision.
- * The `lyrics` table has an FK with `ON DELETE CASCADE`, so a plain REPLACE
- * rescan would silently wipe fetched lyrics. [SongDao.upsert] uses INSERT-or-
- * UPDATE semantics that preserve the parent row and therefore its FK children.
+ * Lyrics/SetlistEntry FKs have `ON DELETE CASCADE`, so plain REPLACE rescans
+ * would silently wipe fetched lyrics and setlist membership. [SongDao.upsert]
+ * uses INSERT-or-UPDATE semantics that preserve parent row identity.
  */
 @Singleton
 class LibraryImporter @Inject constructor(
@@ -66,6 +71,7 @@ class LibraryImporter @Inject constructor(
     private val songDao: SongDao,
     private val lyricsDao: LyricsDao,
     private val sidecarSource: SidecarLyricsSource,
+    private val setlistDao: SetlistDao,
 ) : LibraryImporterSource {
 
     override suspend fun importAll(): ImportResult = withContext(Dispatchers.IO) {
@@ -77,10 +83,15 @@ class LibraryImporter @Inject constructor(
         var added = 0
         var updated = 0
 
+        // Collect (folderUri → ordered songIds) as we upsert so we can rebuild
+        // setlist entries in one pass after the song loop.
+        val songIdByFolder: MutableMap<String, MutableList<Long>> = linkedMapOf()
+        val folderNames: MutableMap<String, String> = linkedMapOf()
+
         for (file in files) {
             val uriString = file.uri.toString()
             val metadata = metadataReader.read(file.uri)
-            val parsed = com.cameronbatten.dadmusic.data.scan.FilenameParser.parse(file.displayName)
+            val parsed = FilenameParser.parse(file.displayName)
 
             val title = metadata.title ?: parsed.title
                 ?: file.displayName.substringBeforeLast('.', file.displayName)
@@ -97,34 +108,10 @@ class LibraryImporter @Inject constructor(
                 (metadata.title != null && metadata.artist != null) ||
                 (parsed.title != null && parsed.artist != null)
 
-            // 1. Same URI → update in place.
             val sameUri = orphans.remove(uriString)
             val songId: Long = if (sameUri != null) {
-                val updatedRow = sameUri.copy(
-                    title = title,
-                    artist = artist,
-                    album = album,
-                    fileType = fileType,
-                    durationMs = durationMs,
-                    sizeBytes = file.sizeBytes,
-                    confirmed = confirmed,
-                    lyricsStatus = statusFor(file, sameUri.lyricsStatus),
-                )
-                songDao.upsert(updatedRow)
-                updated++
-                sameUri.id
-            } else {
-                // 2. Rename twin?
-                val renameEntry = orphans.entries.firstOrNull { (_, s) ->
-                    s.sizeBytes > 0L &&
-                        s.sizeBytes == file.sizeBytes &&
-                        s.durationMs == durationMs
-                }
-                if (renameEntry != null) {
-                    orphans.remove(renameEntry.key)
-                    val old = renameEntry.value
-                    val updatedRow = old.copy(
-                        uri = uriString,
+                songDao.upsert(
+                    sameUri.copy(
                         title = title,
                         artist = artist,
                         album = album,
@@ -132,13 +119,34 @@ class LibraryImporter @Inject constructor(
                         durationMs = durationMs,
                         sizeBytes = file.sizeBytes,
                         confirmed = confirmed,
-                        lyricsStatus = statusFor(file, old.lyricsStatus),
+                        lyricsStatus = statusFor(file, sameUri.lyricsStatus),
+                    ),
+                )
+                updated++
+                sameUri.id
+            } else {
+                val renameEntry = orphans.entries.firstOrNull { (_, s) ->
+                    s.sizeBytes > 0L && s.sizeBytes == file.sizeBytes && s.durationMs == durationMs
+                }
+                if (renameEntry != null) {
+                    orphans.remove(renameEntry.key)
+                    val old = renameEntry.value
+                    songDao.upsert(
+                        old.copy(
+                            uri = uriString,
+                            title = title,
+                            artist = artist,
+                            album = album,
+                            fileType = fileType,
+                            durationMs = durationMs,
+                            sizeBytes = file.sizeBytes,
+                            confirmed = confirmed,
+                            lyricsStatus = statusFor(file, old.lyricsStatus),
+                        ),
                     )
-                    songDao.upsert(updatedRow)
                     updated++
                     old.id
                 } else {
-                    // 3. Brand-new file.
                     val newRow = Song(
                         title = title,
                         artist = artist,
@@ -153,13 +161,19 @@ class LibraryImporter @Inject constructor(
                     )
                     val insertedId = songDao.upsert(newRow)
                     added++
-                    // Upsert returns the generated rowId on insert. For the inserted-only
-                    // path this is the new Song.id; look up by uri as a defensive fallback.
-                    if (insertedId > 0L) insertedId else (songDao.findByUri(uriString)?.id ?: continue)
+                    if (insertedId > 0L) insertedId
+                    else (songDao.findByUri(uriString)?.id ?: continue)
                 }
             }
 
-            // Adopt sidecar lyrics, if any.
+            // Track folder → songs for the setlist pass.
+            val folderUri = file.rootFolderUri
+            if (folderUri != null) {
+                songIdByFolder.getOrPut(folderUri) { mutableListOf() }.add(songId)
+                file.rootFolderName?.let { folderNames[folderUri] = it }
+            }
+
+            // Adopt sidecar lyrics if any.
             val sidecarUri = file.lrcSidecarUri
             if (sidecarUri != null) {
                 val text = sidecarSource.read(sidecarUri)
@@ -178,22 +192,65 @@ class LibraryImporter @Inject constructor(
             }
         }
 
+        // Prune songs whose files are gone.
         val removedCount = orphans.size
         for (dbUri in orphans.keys) {
             songDao.deleteByUri(dbUri)
         }
 
+        syncSetlists(songIdByFolder, folderNames)
+
         ImportResult(added = added, updated = updated, removed = removedCount, skipped = 0)
     }
 
     /**
-     * Decide the lyricsStatus to persist for this scan pass.
-     *
-     * - A sidecar on disk forces [LyricsStatus.ADOPTED_FROM_DISK], even if an older
-     *   LRCLIB fetch had succeeded — the user's disk file is authoritative.
-     * - Otherwise we preserve whatever status the song already had so a successful
-     *   LRCLIB fetch isn't reset to MISSING by every rescan.
+     * For each scanned folder, upsert a Setlist and replace its entries. Delete
+     * any pre-existing Setlist whose `sourceFolderUri` wasn't in this scan.
      */
+    private suspend fun syncSetlists(
+        songIdByFolder: Map<String, List<Long>>,
+        folderNames: Map<String, String>,
+    ) {
+        val now = System.currentTimeMillis()
+        val existingByFolder = setlistDao.getAll()
+            .filter { it.sourceFolderUri != null }
+            .associateBy { it.sourceFolderUri!! }
+
+        val scannedFolders = songIdByFolder.keys
+
+        for ((folderUri, songIds) in songIdByFolder) {
+            val existing = existingByFolder[folderUri]
+            val toUpsert = Setlist(
+                id = existing?.id ?: 0,
+                name = folderNames[folderUri] ?: existing?.name ?: "Unnamed",
+                sourceFolderUri = folderUri,
+                orderIndex = existing?.orderIndex ?: 0,
+                createdAt = existing?.createdAt ?: now,
+                modifiedUtc = now,
+            )
+            val resolvedId = setlistDao.upsert(toUpsert).takeIf { it > 0L }
+                ?: existing?.id
+                ?: setlistDao.findByFolder(folderUri)?.id
+                ?: continue
+
+            val entries = songIds.distinct().mapIndexed { i, songId ->
+                SetlistEntry(
+                    setlistId = resolvedId,
+                    songId = songId,
+                    position = (i + 1) * SETLIST_POSITION_STEP,
+                )
+            }
+            setlistDao.replaceEntries(resolvedId, entries)
+        }
+
+        // Prune: folder-sourced setlists whose folder wasn't scanned.
+        for ((folderUri, setlist) in existingByFolder) {
+            if (folderUri !in scannedFolders) {
+                setlistDao.deleteById(setlist.id)
+            }
+        }
+    }
+
     private fun statusFor(file: DiscoveredFile, previous: LyricsStatus): LyricsStatus =
         if (file.lrcSidecarUri != null) LyricsStatus.ADOPTED_FROM_DISK else previous
 }

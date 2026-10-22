@@ -15,6 +15,12 @@ import android.net.Uri
  *                       music file, or null when no sidecar exists. The [LibraryImporter]
  *                       adopts this file's content as the song's lyrics (spec §5.1) and
  *                       skips any LRCLIB fetch for that song.
+ * @param rootFolderUri  String form of the registered root folder's URI this file was
+ *                       reached from. Drives the folder → setlist bridge (spec §5.1): one
+ *                       Setlist per registered folder.
+ * @param rootFolderName Display name of that root folder (last SAF segment or
+ *                       `DocumentFile.name`). Becomes the Setlist's name on first scan;
+ *                       updates on subsequent scans when the user renames the folder.
  */
 data class DiscoveredFile(
     val uri: Uri,
@@ -23,4 +29,6 @@ data class DiscoveredFile(
     val mimeType: String?,
     val sizeBytes: Long,
     val lrcSidecarUri: Uri? = null,
+    val rootFolderUri: String? = null,
+    val rootFolderName: String? = null,
 )

@@ -9,6 +9,7 @@ import com.cameronbatten.dadmusic.data.db.FileType
 import com.cameronbatten.dadmusic.data.db.LyricsDao
 import com.cameronbatten.dadmusic.data.db.LyricsSource
 import com.cameronbatten.dadmusic.data.db.LyricsStatus
+import com.cameronbatten.dadmusic.data.db.SetlistDao
 import com.cameronbatten.dadmusic.data.db.SongDao
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -37,6 +38,7 @@ class LibraryImporterTest {
     private lateinit var db: AppDatabase
     private lateinit var songDao: SongDao
     private lateinit var lyricsDao: LyricsDao
+    private lateinit var setlistDao: SetlistDao
 
     @Before
     fun setUp() {
@@ -46,6 +48,7 @@ class LibraryImporterTest {
         ).allowMainThreadQueries().build()
         songDao = db.songDao()
         lyricsDao = db.lyricsDao()
+        setlistDao = db.setlistDao()
     }
 
     @After
@@ -79,6 +82,8 @@ class LibraryImporterTest {
         displayName: String = "song.mp3",
         extension: String = "mp3",
         lrcSidecarUri: Uri? = null,
+        rootFolderUri: String? = "content://test/folder/default",
+        rootFolderName: String? = "Default",
     ) = DiscoveredFile(
         uri = Uri.parse(uriString),
         displayName = displayName,
@@ -86,6 +91,8 @@ class LibraryImporterTest {
         mimeType = null,
         sizeBytes = 1024L,
         lrcSidecarUri = lrcSidecarUri,
+        rootFolderUri = rootFolderUri,
+        rootFolderName = rootFolderName,
     )
 
     private fun fileMetadata(
@@ -105,6 +112,7 @@ class LibraryImporterTest {
         songDao = songDao,
         lyricsDao = lyricsDao,
         sidecarSource = FakeSidecarSource(sidecarByUri),
+        setlistDao = setlistDao,
     )
 
     // ── Core upsert tests (from M1, still valid) ──────────────────────────────
@@ -277,6 +285,106 @@ class LibraryImporterTest {
         assertEquals(LyricsStatus.ADOPTED_FROM_DISK, song!!.lyricsStatus)
         assertNull(lyricsDao.findBySongId(song.id))
     }
+
+    // ── Folder → Setlist bridge (Task 8) ──────────────────────────────────────
+
+    @Test
+    fun importAll_createsOneSetlistPerFolder_namedAfterFolder() = runTest {
+        val setA = discoveredFile(
+            uriString = "content://test/a/song1.mp3",
+            rootFolderUri = "content://test/folder/A",
+            rootFolderName = "Set A",
+        )
+        val setB = discoveredFile(
+            uriString = "content://test/b/song2.mp3",
+            rootFolderUri = "content://test/folder/B",
+            rootFolderName = "Set B",
+        )
+        val importer = buildImporter(
+            files = listOf(setA, setB),
+            metaByUri = mapOf(
+                setA.uri.toString() to fileMetadata(title = "A1"),
+                setB.uri.toString() to fileMetadata(title = "B1"),
+            ),
+        )
+
+        importer.importAll()
+
+        val setlists = setlistDao.getAll()
+        assertEquals(2, setlists.size)
+        val names = setlists.mapNotNull { it.name }.toSet()
+        assertTrue(names.contains("Set A"))
+        assertTrue(names.contains("Set B"))
+    }
+
+    @Test
+    fun importAll_setlistEntries_matchScannedSongsInScanOrder() = runTest {
+        val one = discoveredFile(
+            uriString = "content://test/f/one.mp3",
+            rootFolderUri = "content://test/folder/F",
+            rootFolderName = "F",
+        )
+        val two = discoveredFile(
+            uriString = "content://test/f/two.mp3",
+            rootFolderUri = "content://test/folder/F",
+            rootFolderName = "F",
+        )
+        val importer = buildImporter(
+            files = listOf(one, two),
+            metaByUri = mapOf(
+                one.uri.toString() to fileMetadata(title = "One"),
+                two.uri.toString() to fileMetadata(title = "Two"),
+            ),
+        )
+
+        importer.importAll()
+
+        val setlist = setlistDao.findByFolder("content://test/folder/F")!!
+        val entries = setlistDao.entriesFor(setlist.id)
+        assertEquals(listOf("One", "Two"), entries.map { it.song.title })
+        assertEquals(listOf(1000, 2000), entries.map { it.position })
+    }
+
+    @Test
+    fun importAll_rescan_updatesSetlistNameOnFolderRename() = runTest {
+        val f1 = discoveredFile(
+            uriString = "content://test/f/song.mp3",
+            rootFolderUri = "content://test/folder/x",
+            rootFolderName = "Old Name",
+        )
+        buildImporter(listOf(f1), mapOf(f1.uri.toString() to fileMetadata())).importAll()
+        assertEquals("Old Name", setlistDao.findByFolder("content://test/folder/x")!!.name)
+
+        // Rescan with a new folder display name (same SAF root URI).
+        val f2 = f1.copy(rootFolderName = "New Name")
+        buildImporter(listOf(f2), mapOf(f2.uri.toString() to fileMetadata())).importAll()
+
+        assertEquals("New Name", setlistDao.findByFolder("content://test/folder/x")!!.name)
+    }
+
+    @Test
+    fun importAll_folderDisappears_setlistIsDeleted() = runTest {
+        val fileA = discoveredFile(
+            uriString = "content://test/a/song.mp3",
+            rootFolderUri = "content://test/folder/A",
+            rootFolderName = "A",
+        )
+        buildImporter(listOf(fileA), mapOf(fileA.uri.toString() to fileMetadata())).importAll()
+        assertNotNull(setlistDao.findByFolder("content://test/folder/A"))
+
+        // Second scan returns no files from folder A → folder is gone.
+        val fileB = discoveredFile(
+            uriString = "content://test/b/song.mp3",
+            rootFolderUri = "content://test/folder/B",
+            rootFolderName = "B",
+        )
+        buildImporter(listOf(fileB), mapOf(fileB.uri.toString() to fileMetadata())).importAll()
+
+        assertNull("setlist for unregistered folder A should be gone", setlistDao.findByFolder("content://test/folder/A"))
+        assertNotNull(setlistDao.findByFolder("content://test/folder/B"))
+    }
+
+    // ── Lyrics preservation (Task 3) ──────────────────────────────────────────
 
     @Test
     fun rescan_withoutSidecar_preservesPreviouslyFetchedLyrics() = runTest {

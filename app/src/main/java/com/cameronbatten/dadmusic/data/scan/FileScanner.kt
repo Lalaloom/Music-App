@@ -54,7 +54,8 @@ class FileScanner @Inject constructor(
         for (rootUri in roots) {
             val rootDoc: DocumentFile? = openRoot(rootUri)
             if (rootDoc == null) continue
-            walk(rootDoc, seen, results)
+            val rootName = rootDoc.name ?: rootUri.lastPathSegment ?: "Unknown"
+            walk(rootDoc, rootUri, rootName, seen, results)
         }
 
         results
@@ -88,6 +89,8 @@ class FileScanner @Inject constructor(
      */
     private fun walk(
         root: DocumentFile,
+        rootUri: Uri,
+        rootName: String,
         seen: LinkedHashSet<String>,
         results: MutableList<DiscoveredFile>,
     ) {
@@ -143,6 +146,8 @@ class FileScanner @Inject constructor(
                     mimeType = child.type,
                     sizeBytes = child.length(),
                     lrcSidecarUri = lrcByBasename[basename],
+                    rootFolderUri = rootUri.toString(),
+                    rootFolderName = rootName,
                 )
             }
         }
