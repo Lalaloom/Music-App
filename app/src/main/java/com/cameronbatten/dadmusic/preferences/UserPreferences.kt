@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -53,8 +54,17 @@ class UserPreferences @Inject constructor(
         store.edit { it[FONT_SIZE_KEY] = preset.name }
     }
 
+    val onboardingCompleted: Flow<Boolean> = store.data
+        .catch { e -> if (e is IOException) emit(androidx.datastore.preferences.core.emptyPreferences()) else throw e }
+        .map { it[ONBOARDING_COMPLETED_KEY] ?: false }
+
+    suspend fun markOnboardingComplete() {
+        store.edit { it[ONBOARDING_COMPLETED_KEY] = true }
+    }
+
     private companion object {
         val LYRIC_OFFSET_KEY = longPreferencesKey("lyric_offset_ms")
         val FONT_SIZE_KEY = stringPreferencesKey("font_size_preset")
+        val ONBOARDING_COMPLETED_KEY = booleanPreferencesKey("onboarding_completed")
     }
 }

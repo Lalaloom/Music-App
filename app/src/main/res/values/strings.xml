@@ -68,6 +68,23 @@
     <string name="settings_refetch_button">Fetch all missing lyrics</string>
     <string name="settings_fetch_progress">%1$d / %2$d (%3$d failed)</string>
 
+    <!-- Onboarding -->
+    <string name="onboarding_welcome_title">Welcome to Dad Music</string>
+    <string name="onboarding_welcome_subtitle">Your gig-ready player. Pick folders and each one becomes a setlist. Lyrics scroll with the song.</string>
+    <string name="onboarding_welcome_cta">Let\'s go</string>
+    <string name="onboarding_folders_title">Where\'s your music?</string>
+    <string name="onboarding_folders_subtitle">Pick the folders that hold your songs. Each becomes a setlist. You can add more later.</string>
+    <string name="onboarding_folders_add">Pick a folder</string>
+    <string name="onboarding_folders_next">Next</string>
+    <string name="onboarding_folders_skip">Skip for now</string>
+    <string name="onboarding_scanning_title">Setting up your library</string>
+    <string name="onboarding_scanning_phase_scanning">Scanning files…</string>
+    <string name="onboarding_scanning_phase_fetching">Fetching lyrics (%1$d / %2$d)</string>
+    <string name="onboarding_done_title">You\'re all set</string>
+    <string name="onboarding_done_summary">Added %1$d songs.</string>
+    <string name="onboarding_done_summary_empty">No folders yet — add some from the folder icon when you\'re ready.</string>
+    <string name="onboarding_done_cta">Open my library</string>
+
     <!-- Common -->
     <string name="back_description">Navigate back</string>
     <string name="folders_icon_description">Open folders</string>
