@@ -2,6 +2,7 @@ package com.cameronbatten.dadmusic.di
 
 import android.content.Context
 import androidx.room.Room
+import com.cameronbatten.dadmusic.data.db.ALL_MIGRATIONS
 import com.cameronbatten.dadmusic.data.db.AppDatabase
 import com.cameronbatten.dadmusic.data.db.LiveQueueDao
 import com.cameronbatten.dadmusic.data.db.LyricsDao
@@ -24,12 +25,9 @@ object AppModule {
 
     @Provides
     @Singleton
-    // TODO(M2): write a proper Migration for the sizeBytes column added in v2. For M1 we fall
-    //           back to destructive migration — the app is pre-release and the only data is a
-    //           song index that can be rebuilt in seconds via "Scan now".
     fun provideAppDatabase(@ApplicationContext ctx: Context): AppDatabase =
         Room.databaseBuilder(ctx, AppDatabase::class.java, "dad_music.db")
-            .fallbackToDestructiveMigration()
+            .addMigrations(*ALL_MIGRATIONS)
             .build()
 
     @Provides

@@ -7,6 +7,10 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 android {
     namespace = "com.cameronbatten.dadmusic"
     compileSdk = 34

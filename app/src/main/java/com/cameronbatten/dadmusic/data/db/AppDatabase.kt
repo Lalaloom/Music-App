@@ -7,7 +7,7 @@ import androidx.room.TypeConverters
 @Database(
     entities = [Song::class, Lyrics::class, Setlist::class, SetlistEntry::class, LiveQueueEntry::class],
     version = 4,
-    exportSchema = false,
+    exportSchema = true,
 )
 @TypeConverters(
     FileTypeConverter::class,
