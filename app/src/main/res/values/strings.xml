@@ -22,6 +22,28 @@
     <!-- Mini-player (library) -->
     <string name="mini_player_open_description">Open full player</string>
 
+    <!-- Navigator -->
+    <string name="navigator_setlist_dropdown_cd">Switch setlist</string>
+    <string name="navigator_library_option">Library</string>
+    <string name="navigator_queue_empty_setlist">This setlist has no songs yet.</string>
+    <string name="navigator_queue_empty_library">Pick a song from the library to start a queue.</string>
+    <string name="navigator_save_changes">Save changes to %1$s</string>
+    <string name="navigator_move_up_cd">Move earlier</string>
+    <string name="navigator_move_down_cd">Move later</string>
+    <string name="navigator_drag_handle_cd">Drag to reorder</string>
+    <string name="navigator_remove_from_queue_cd">Remove from queue</string>
+    <string name="navigator_tab_setlist">Setlist</string>
+    <string name="navigator_tab_library">Library</string>
+
+    <!-- Search pane -->
+    <string name="search_placeholder">Search library</string>
+    <string name="search_clear_cd">Clear search</string>
+    <string name="search_add_to_queue_cd">Add to queue</string>
+    <string name="search_empty_hint">Type to search your library.</string>
+    <string name="search_no_results">No matches.</string>
+    <string name="search_undo">Undo</string>
+    <string name="search_already_present_dismiss">OK</string>
+
     <!-- Player screen -->
     <string name="player_play_pause_description">Play / Pause</string>
     <string name="player_skip_next_description">Skip to next song</string>
@@ -29,6 +51,22 @@
     <string name="player_seek_description">Seek position</string>
     <string name="player_unknown_title">Unknown title</string>
     <string name="player_unknown_artist">Unknown artist</string>
+
+    <!-- Zen performance view -->
+    <string name="zen_no_lyrics_hint">No lyrics yet. Settings → Fetch all lyrics will try to find them.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_open_cd">Open settings</string>
+    <string name="settings_section_lyrics">Lyrics</string>
+    <string name="settings_section_font_size">Font size</string>
+    <string name="settings_section_library">Library</string>
+    <string name="settings_lyric_offset_label">Lyric timing offset: %1$d ms</string>
+    <string name="settings_font_small">Small</string>
+    <string name="settings_font_medium">Medium</string>
+    <string name="settings_font_large">Large</string>
+    <string name="settings_refetch_button">Fetch all missing lyrics</string>
+    <string name="settings_fetch_progress">%1$d / %2$d (%3$d failed)</string>
 
     <!-- Common -->
     <string name="back_description">Navigate back</string>

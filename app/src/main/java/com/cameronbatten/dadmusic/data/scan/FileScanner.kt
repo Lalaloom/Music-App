@@ -54,7 +54,8 @@ class FileScanner @Inject constructor(
         for (rootUri in roots) {
             val rootDoc: DocumentFile? = openRoot(rootUri)
             if (rootDoc == null) continue
-            walk(rootDoc, seen, results)
+            val rootName = rootDoc.name ?: rootUri.lastPathSegment ?: "Unknown"
+            walk(rootDoc, rootUri, rootName, seen, results)
         }
 
         results
@@ -80,10 +81,16 @@ class FileScanner @Inject constructor(
 
     /**
      * Iterative depth-first walk of [root].
-     * Directories are pushed onto the stack; matching files are collected.
+     *
+     * Per directory, children are bucketed into (a) `.lrc` sidecars indexed by their
+     * basename and (b) candidate music/video files. We then emit each music file with
+     * its matching sidecar attached. Basename matching is case-insensitive so
+     * `song.MP3` + `SONG.lrc` still pair up on filesystems that preserve case.
      */
     private fun walk(
         root: DocumentFile,
+        rootUri: Uri,
+        rootName: String,
         seen: LinkedHashSet<String>,
         results: MutableList<DiscoveredFile>,
     ) {
@@ -103,27 +110,50 @@ class FileScanner @Inject constructor(
                 continue
             }
 
+            val lrcByBasename = HashMap<String, Uri>()
+            val musicCandidates = mutableListOf<DocumentFile>()
+
             for (child in children) {
                 if (child.isDirectory) {
                     stack.addLast(child)
-                } else if (child.isFile) {
-                    val uriKey = child.uri.toString()
-                    if (uriKey in seen) continue
-                    seen += uriKey
+                    continue
+                }
+                if (!child.isFile) continue
 
-                    val fileName = child.name ?: continue
-                    val ext = fileName.substringAfterLast('.', "").lowercase()
-                    if (ext !in ALLOWED_EXTENSIONS) continue
+                val fileName = child.name ?: continue
+                val ext = fileName.substringAfterLast('.', "").lowercase()
+                val basename = fileName.substringBeforeLast('.', fileName).lowercase()
 
-                    results += DiscoveredFile(
-                        uri = child.uri,
-                        displayName = fileName,
-                        extension = ext,
-                        mimeType = child.type,
-                        sizeBytes = child.length(),
-                    )
+                when {
+                    ext == LRC_EXTENSION -> lrcByBasename[basename] = child.uri
+                    ext in ALLOWED_EXTENSIONS -> musicCandidates += child
                 }
             }
+
+            for (child in musicCandidates) {
+                val uriKey = child.uri.toString()
+                if (uriKey in seen) continue
+                seen += uriKey
+
+                val fileName = child.name ?: continue
+                val ext = fileName.substringAfterLast('.', "").lowercase()
+                val basename = fileName.substringBeforeLast('.', fileName).lowercase()
+
+                results += DiscoveredFile(
+                    uri = child.uri,
+                    displayName = fileName,
+                    extension = ext,
+                    mimeType = child.type,
+                    sizeBytes = child.length(),
+                    lrcSidecarUri = lrcByBasename[basename],
+                    rootFolderUri = rootUri.toString(),
+                    rootFolderName = rootName,
+                )
+            }
         }
+    }
+
+    private companion object {
+        const val LRC_EXTENSION = "lrc"
     }
 }

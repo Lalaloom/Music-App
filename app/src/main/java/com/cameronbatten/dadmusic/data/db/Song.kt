@@ -25,4 +25,6 @@ data class Song(
     // haven't seen before, we check whether an orphaned row has the same size +
     // duration and treat that as the same file under a new name.
     val sizeBytes: Long = 0L,
+    val lyricsStatus: LyricsStatus = LyricsStatus.MISSING,
+    val lyricsCachePath: String? = null,
 )

@@ -3,6 +3,9 @@ package com.cameronbatten.dadmusic.di
 import android.content.Context
 import androidx.room.Room
 import com.cameronbatten.dadmusic.data.db.AppDatabase
+import com.cameronbatten.dadmusic.data.db.LiveQueueDao
+import com.cameronbatten.dadmusic.data.db.LyricsDao
+import com.cameronbatten.dadmusic.data.db.SetlistDao
 import com.cameronbatten.dadmusic.data.db.SongDao
 import dagger.Module
 import dagger.Provides
@@ -31,4 +34,13 @@ object AppModule {
 
     @Provides
     fun provideSongDao(db: AppDatabase): SongDao = db.songDao()
+
+    @Provides
+    fun provideLyricsDao(db: AppDatabase): LyricsDao = db.lyricsDao()
+
+    @Provides
+    fun provideSetlistDao(db: AppDatabase): SetlistDao = db.setlistDao()
+
+    @Provides
+    fun provideLiveQueueDao(db: AppDatabase): LiveQueueDao = db.liveQueueDao()
 }

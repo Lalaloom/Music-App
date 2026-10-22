@@ -4,8 +4,10 @@ import com.cameronbatten.dadmusic.data.scan.FileScanner
 import com.cameronbatten.dadmusic.data.scan.FileScannerSource
 import com.cameronbatten.dadmusic.data.scan.LibraryImporter
 import com.cameronbatten.dadmusic.data.scan.LibraryImporterSource
+import com.cameronbatten.dadmusic.data.scan.LrcSidecarReader
 import com.cameronbatten.dadmusic.data.scan.MetadataReader
 import com.cameronbatten.dadmusic.data.scan.MetadataSource
+import com.cameronbatten.dadmusic.data.scan.SidecarLyricsSource
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -34,4 +36,8 @@ abstract class ScanBindsModule {
     @Binds
     @Singleton
     abstract fun bindLibraryImporterSource(impl: LibraryImporter): LibraryImporterSource
+
+    @Binds
+    @Singleton
+    abstract fun bindSidecarLyricsSource(impl: LrcSidecarReader): SidecarLyricsSource
 }
