@@ -98,6 +98,11 @@ class NavigatorViewModel @Inject constructor(
         viewModelScope.launch { liveQueueManager.moveByIndex(fromIndex, toIndex) }
     }
 
+    /** Persist a drag-reorder's final order in one write. */
+    fun applyQueueOrder(songIds: List<Long>) {
+        viewModelScope.launch { liveQueueManager.applyOrder(songIds) }
+    }
+
     fun removeFromQueue(position: Int) {
         viewModelScope.launch { liveQueueManager.remove(position) }
     }

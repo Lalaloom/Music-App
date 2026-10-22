@@ -104,7 +104,7 @@ fun NavigatorScreen(
                         hasDiverged = hasDiverged,
                         currentSongId = currentSong?.id,
                         onSwitch = viewModel::switchTo,
-                        onReorder = viewModel::reorder,
+                        onApplyOrder = viewModel::applyQueueOrder,
                         onRemove = viewModel::removeFromQueue,
                         onSaveToParent = viewModel::saveQueueToParent,
                         onRowTap = { position ->
@@ -142,7 +142,7 @@ fun NavigatorScreen(
                             hasDiverged = hasDiverged,
                             currentSongId = currentSong?.id,
                             onSwitch = viewModel::switchTo,
-                            onReorder = viewModel::reorder,
+                            onApplyOrder = viewModel::applyQueueOrder,
                             onRemove = viewModel::removeFromQueue,
                             onSaveToParent = viewModel::saveQueueToParent,
                             onRowTap = { position ->

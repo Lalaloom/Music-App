@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,7 +51,7 @@ fun SetlistPane(
     hasDiverged: Boolean,
     currentSongId: Long?,
     onSwitch: (Long?) -> Unit,
-    onReorder: (fromIndex: Int, toIndex: Int) -> Unit,
+    onApplyOrder: (songIds: List<Long>) -> Unit,
     onRemove: (position: Int) -> Unit,
     onSaveToParent: () -> Unit,
     onRowTap: (position: Int) -> Unit,
@@ -85,8 +86,7 @@ fun SetlistPane(
             ReorderableQueueList(
                 queue = queue,
                 currentSongId = currentSongId,
-                currentIndex = currentIndex,
-                onReorder = onReorder,
+                onApplyOrder = onApplyOrder,
                 onRemove = onRemove,
                 onRowTap = onRowTap,
                 modifier = Modifier.weight(1f),
@@ -112,8 +112,7 @@ fun SetlistPane(
 private fun ReorderableQueueList(
     queue: List<SongInQueue>,
     currentSongId: Long?,
-    currentIndex: Int,
-    onReorder: (fromIndex: Int, toIndex: Int) -> Unit,
+    onApplyOrder: (songIds: List<Long>) -> Unit,
     onRemove: (position: Int) -> Unit,
     onRowTap: (position: Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -121,17 +120,39 @@ private fun ReorderableQueueList(
     val lazyListState = rememberLazyListState()
     val haptics = LocalHapticFeedback.current
 
+    // Local mirror of the queue. The reorder lib calls onMove continuously
+    // during a drag and expects the underlying list to update synchronously;
+    // if we round-tripped every onMove through the DB the lib would see stale
+    // positions mid-drag and the animation would jitter. Instead we mutate
+    // this local list in onMove, then persist the final order on drag stop.
+    var localQueue by remember { mutableStateOf(queue) }
+    // When upstream emits a different queue (new song added / removed / parent
+    // switched), resync — but ignore churn that comes from our own persisted
+    // reorder (same ids in the same order).
+    LaunchedEffect(queue) {
+        if (queue.map { it.song.id } != localQueue.map { it.song.id }) {
+            localQueue = queue
+        } else {
+            // Same ids, same order — upstream may still have refreshed Song
+            // fields (title, status). Adopt the fresher objects.
+            localQueue = queue
+        }
+    }
+
     val reorderState = rememberReorderableLazyListState(lazyListState) { from, to ->
-        onReorder(from.index, to.index)
+        localQueue = localQueue.toMutableList().apply {
+            add(to.index, removeAt(from.index))
+        }
     }
 
     LazyColumn(
         state = lazyListState,
         modifier = modifier.fillMaxSize(),
     ) {
-        items(queue, key = { it.song.id }) { inQueue ->
+        items(localQueue, key = { it.song.id }) { inQueue ->
             ReorderableItem(reorderState, key = inQueue.song.id) { isDragging ->
-                val index = queue.indexOf(inQueue)
+                val index = localQueue.indexOf(inQueue)
+                val currentIndex = localQueue.indexOfFirst { it.song.id == currentSongId }
                 LiveQueueRow(
                     songInQueue = inQueue,
                     isCurrent = inQueue.song.id == currentSongId,
@@ -140,6 +161,11 @@ private fun ReorderableQueueList(
                     dragHandleModifier = Modifier.longPressDraggableHandle(
                         onDragStarted = {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        },
+                        onDragStopped = {
+                            // Snapshot and persist the final order.
+                            val ids = localQueue.map { it.song.id }
+                            onApplyOrder(ids)
                         },
                     ),
                     onTap = { onRowTap(inQueue.entry.position) },

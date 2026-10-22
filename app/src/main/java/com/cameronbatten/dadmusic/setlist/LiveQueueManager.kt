@@ -71,6 +71,23 @@ class LiveQueueManager @Inject constructor(
     }
 
     /**
+     * Rewrite the queue in the given [songIds] order. Each existing entry's
+     * `source` and `parentSetlistId` are preserved; positions are renumbered
+     * from scratch using the sparse step. Song IDs not currently in the queue
+     * are dropped silently (defensive — the UI should pass a permutation).
+     *
+     * Preferred over [moveByIndex] when the caller has a final desired order
+     * — one DB write, no per-move chatter.
+     */
+    suspend fun applyOrder(songIds: List<Long>) {
+        val existing = liveQueueDao.getAll().associateBy { it.songId }
+        val reordered = songIds.mapIndexedNotNull { i, id ->
+            existing[id]?.copy(position = (i + 1) * POSITION_STEP)
+        }
+        liveQueueDao.replaceAll(reordered)
+    }
+
+    /**
      * Move the entry currently at [fromIndex] to [toIndex] in the queue's visual
      * order. Both indices are 0-based list indices as rendered by the UI; the
      * resulting rows are renumbered with fresh sparse positions.
