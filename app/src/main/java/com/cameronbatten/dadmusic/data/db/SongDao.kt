@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.cameronbatten.dadmusic.playback.SongLookup
 import kotlinx.coroutines.flow.Flow
 
@@ -11,6 +12,19 @@ import kotlinx.coroutines.flow.Flow
 interface SongDao : SongLookup {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(song: Song): Long
+
+    /**
+     * Insert if new, UPDATE in place if the primary key matches an existing row.
+     *
+     * Unlike [insert] (which uses `OnConflictStrategy.REPLACE` and therefore performs a
+     * `DELETE + INSERT` sequence), [upsert] uses `INSERT OR IGNORE` followed by `UPDATE`,
+     * which **does not fire `ON DELETE CASCADE` on child tables**. That matters here
+     * because the `lyrics` table has an FK on `songId` with `CASCADE` delete: a rescan
+     * that touched existing songs via REPLACE would silently wipe their fetched lyrics.
+     * Use this method for every scan-driven upsert of an existing song.
+     */
+    @Upsert
+    suspend fun upsert(song: Song): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(songs: List<Song>): List<Long>

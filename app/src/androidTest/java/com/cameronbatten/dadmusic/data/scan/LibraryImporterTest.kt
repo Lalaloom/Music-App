@@ -6,12 +6,18 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.cameronbatten.dadmusic.data.db.AppDatabase
 import com.cameronbatten.dadmusic.data.db.FileType
+import com.cameronbatten.dadmusic.data.db.LyricsDao
+import com.cameronbatten.dadmusic.data.db.LyricsSource
+import com.cameronbatten.dadmusic.data.db.LyricsStatus
 import com.cameronbatten.dadmusic.data.db.SongDao
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -20,18 +26,17 @@ import org.junit.runner.RunWith
  * Instrumented tests for [LibraryImporter].
  *
  * Uses:
- * - [FakeFileScanner]   — returns a hardcoded [List<DiscoveredFile>] controlled per-test.
+ * - [FakeFileScanner]    — returns a hardcoded [List<DiscoveredFile>] controlled per-test.
  * - [FakeMetadataReader] — returns a hardcoded [FileMetadata] per URI.
- * - Real in-memory Room DAO — verifies actual upsert/conflict semantics.
- *
- * [FilenameParser] is a Kotlin `object`; [LibraryImporter] references it directly, so no fake
- * is needed here.
+ * - [FakeSidecarSource]  — returns a hardcoded sidecar text per URI.
+ * - Real in-memory Room — verifies actual upsert / FK / cascade semantics.
  */
 @RunWith(AndroidJUnit4::class)
 class LibraryImporterTest {
 
     private lateinit var db: AppDatabase
-    private lateinit var dao: SongDao
+    private lateinit var songDao: SongDao
+    private lateinit var lyricsDao: LyricsDao
 
     @Before
     fun setUp() {
@@ -39,7 +44,8 @@ class LibraryImporterTest {
             ApplicationProvider.getApplicationContext(),
             AppDatabase::class.java,
         ).allowMainThreadQueries().build()
-        dao = db.songDao()
+        songDao = db.songDao()
+        lyricsDao = db.lyricsDao()
     }
 
     @After
@@ -60,18 +66,26 @@ class LibraryImporterTest {
             byUri[uri.toString()] ?: FileMetadata(null, null, null, 0L)
     }
 
+    private class FakeSidecarSource(
+        private val byUri: Map<String, String?> = emptyMap(),
+    ) : SidecarLyricsSource {
+        override suspend fun read(uri: Uri): String? = byUri[uri.toString()]
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun discoveredFile(
         uriString: String = "content://test/song.mp3",
         displayName: String = "song.mp3",
         extension: String = "mp3",
+        lrcSidecarUri: Uri? = null,
     ) = DiscoveredFile(
         uri = Uri.parse(uriString),
         displayName = displayName,
         extension = extension,
         mimeType = null,
         sizeBytes = 1024L,
+        lrcSidecarUri = lrcSidecarUri,
     )
 
     private fun fileMetadata(
@@ -84,17 +98,17 @@ class LibraryImporterTest {
     private fun buildImporter(
         files: List<DiscoveredFile>,
         metaByUri: Map<String, FileMetadata>,
+        sidecarByUri: Map<String, String?> = emptyMap(),
     ): LibraryImporter = LibraryImporter(
         scanner = FakeFileScanner(files),
         metadataReader = FakeMetadataReader(metaByUri),
-        songDao = dao,
+        songDao = songDao,
+        lyricsDao = lyricsDao,
+        sidecarSource = FakeSidecarSource(sidecarByUri),
     )
 
-    // ── Tests ─────────────────────────────────────────────────────────────────
+    // ── Core upsert tests (from M1, still valid) ──────────────────────────────
 
-    /**
-     * A brand-new file not yet in the DB is counted as `added`.
-     */
     @Test
     fun importAll_newFile_insertsAsAdded() = runTest {
         val file = discoveredFile("content://test/new.mp3", "new.mp3", "mp3")
@@ -108,13 +122,9 @@ class LibraryImporterTest {
         assertEquals(1, result.added)
         assertEquals(0, result.updated)
         assertEquals(0, result.skipped)
-        assertNotNull(dao.findByUri(file.uri.toString()))
+        assertNotNull(songDao.findByUri(file.uri.toString()))
     }
 
-    /**
-     * Running `importAll` twice on the same URI counts first run as added, second as updated.
-     * The DB row must not be duplicated (unique URI index enforces this).
-     */
     @Test
     fun importAll_sameUriTwice_countsAsUpdatedNotDuplicated() = runTest {
         val file = discoveredFile("content://test/dup.mp3", "dup.mp3", "mp3")
@@ -131,18 +141,12 @@ class LibraryImporterTest {
         assertEquals(1, second.updated)
         assertEquals(0, second.added)
 
-        // Only one row should exist for this URI
-        val all = dao.observeAll().first()
+        val all = songDao.observeAll().first()
         assertEquals(1, all.size)
     }
 
-    /**
-     * When both metadata title/artist and filename-parsed title/artist are present,
-     * the metadata values should be used.
-     */
     @Test
     fun importAll_metadataPreferredWhenPresent() = runTest {
-        // filename "Title From Name - Artist From Name.mp3" would parse to both title+artist
         val file = discoveredFile(
             "content://test/prefer_meta.mp3",
             "Title From Name - Artist From Name.mp3",
@@ -156,24 +160,19 @@ class LibraryImporterTest {
 
         importer.importAll()
 
-        val song = dao.findByUri(file.uri.toString())
+        val song = songDao.findByUri(file.uri.toString())
         assertNotNull(song)
         assertEquals("Meta Title", song!!.title)
         assertEquals("Meta Artist", song.artist)
     }
 
-    /**
-     * When metadata is absent (all nulls), title and artist fall back to filename parse.
-     */
     @Test
     fun importAll_fallsBackToFilenameWhenMetadataMissing() = runTest {
-        // "Parsed Title - Parsed Artist.mp3" → FilenameParser yields title="Parsed Title", artist="Parsed Artist"
         val file = discoveredFile(
             "content://test/fallback.mp3",
             "Parsed Title - Parsed Artist.mp3",
             "mp3",
         )
-        // Metadata returns all nulls
         val meta = FileMetadata(null, null, null, 0L)
         val importer = buildImporter(
             files = listOf(file),
@@ -182,15 +181,12 @@ class LibraryImporterTest {
 
         importer.importAll()
 
-        val song = dao.findByUri(file.uri.toString())
+        val song = songDao.findByUri(file.uri.toString())
         assertNotNull(song)
         assertEquals("Parsed Title", song!!.title)
         assertEquals("Parsed Artist", song.artist)
     }
 
-    /**
-     * A file with extension "mp4" must be stored with [FileType.VIDEO].
-     */
     @Test
     fun importAll_mp4File_fileTypeIsVIDEO() = runTest {
         val file = discoveredFile("content://test/video.mp4", "video.mp4", "mp4")
@@ -202,8 +198,118 @@ class LibraryImporterTest {
 
         importer.importAll()
 
-        val song = dao.findByUri(file.uri.toString())
+        val song = songDao.findByUri(file.uri.toString())
         assertNotNull(song)
         assertEquals(FileType.VIDEO, song!!.fileType)
+    }
+
+    // ── Sidecar adoption (Review Focus #2) ────────────────────────────────────
+
+    @Test
+    fun importAll_adoptsSidecarWhenPresent() = runTest {
+        val sidecarUri = Uri.parse("content://test/song.lrc")
+        val file = discoveredFile(
+            uriString = "content://test/song.mp3",
+            lrcSidecarUri = sidecarUri,
+        )
+        val lrc = "[00:10.00]Hello\n[00:12.00]World"
+        val importer = buildImporter(
+            files = listOf(file),
+            metaByUri = mapOf(file.uri.toString() to fileMetadata()),
+            sidecarByUri = mapOf(sidecarUri.toString() to lrc),
+        )
+
+        importer.importAll()
+
+        val song = songDao.findByUri(file.uri.toString())
+        assertNotNull(song)
+        assertEquals(LyricsStatus.ADOPTED_FROM_DISK, song!!.lyricsStatus)
+
+        val lyrics = lyricsDao.findBySongId(song.id)
+        assertNotNull(lyrics)
+        assertEquals(lrc, lyrics!!.rawLrc)
+        assertEquals(LyricsSource.DISK_SIDECAR, lyrics.source)
+        assertTrue("Synced LRC must set hasTimings = true", lyrics.hasTimings)
+    }
+
+    @Test
+    fun importAll_unsyncedSidecarMarksHasTimingsFalse() = runTest {
+        val sidecarUri = Uri.parse("content://test/plain.lrc")
+        val file = discoveredFile(
+            uriString = "content://test/plain.mp3",
+            lrcSidecarUri = sidecarUri,
+        )
+        val plainText = "verse one line one\nverse one line two"
+        val importer = buildImporter(
+            files = listOf(file),
+            metaByUri = mapOf(file.uri.toString() to fileMetadata()),
+            sidecarByUri = mapOf(sidecarUri.toString() to plainText),
+        )
+
+        importer.importAll()
+
+        val song = songDao.findByUri(file.uri.toString())
+        val lyrics = lyricsDao.findBySongId(song!!.id)
+        assertNotNull(lyrics)
+        assertFalse("Plain-text sidecar must set hasTimings = false", lyrics!!.hasTimings)
+    }
+
+    @Test
+    fun importAll_sidecarWithUnreadableContentSkipsLyricsRow() = runTest {
+        // sidecarSource.read() returning null simulates a corrupt / unreadable sidecar.
+        val sidecarUri = Uri.parse("content://test/bad.lrc")
+        val file = discoveredFile(
+            uriString = "content://test/bad.mp3",
+            lrcSidecarUri = sidecarUri,
+        )
+        val importer = buildImporter(
+            files = listOf(file),
+            metaByUri = mapOf(file.uri.toString() to fileMetadata()),
+            sidecarByUri = mapOf(sidecarUri.toString() to null),
+        )
+
+        importer.importAll()
+
+        val song = songDao.findByUri(file.uri.toString())
+        assertNotNull(song)
+        // Status still reflects the attempt — downstream fetch is skipped either way,
+        // and the user's "something is wrong with this file" lives in the lyrics row's absence.
+        assertEquals(LyricsStatus.ADOPTED_FROM_DISK, song!!.lyricsStatus)
+        assertNull(lyricsDao.findBySongId(song.id))
+    }
+
+    @Test
+    fun rescan_withoutSidecar_preservesPreviouslyFetchedLyrics() = runTest {
+        // Simulates: user ran a LRCLIB fetch (not yet implemented, but we persist the row
+        // directly here), then triggered a rescan. The rescan must NOT wipe the lyrics.
+        val file = discoveredFile(
+            uriString = "content://test/preserve.mp3",
+            lrcSidecarUri = null,
+        )
+        val importer = buildImporter(
+            files = listOf(file),
+            metaByUri = mapOf(file.uri.toString() to fileMetadata()),
+        )
+
+        importer.importAll()
+        val song = songDao.findByUri(file.uri.toString())!!
+
+        // Simulate a successful fetch landing a Lyrics row.
+        lyricsDao.upsert(
+            com.cameronbatten.dadmusic.data.db.Lyrics(
+                songId = song.id,
+                rawLrc = "[00:00.00]from LRCLIB",
+                hasTimings = true,
+                source = LyricsSource.LRCLIB,
+                modifiedUtc = 1L,
+            ),
+        )
+
+        // Rescan — must not cascade-delete the Lyrics row.
+        importer.importAll()
+
+        val stillThere = lyricsDao.findBySongId(song.id)
+        assertNotNull("Rescan must preserve existing LRCLIB-fetched lyrics", stillThere)
+        assertEquals(LyricsSource.LRCLIB, stillThere!!.source)
     }
 }

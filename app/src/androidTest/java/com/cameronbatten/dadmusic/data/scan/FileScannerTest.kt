@@ -128,6 +128,47 @@ class FileScannerTest {
     }
 
     /**
+     * When a `<basename>.lrc` sits beside a music file in the same directory, the scanner
+     * must attach its URI to [DiscoveredFile.lrcSidecarUri]. Siblings in other directories
+     * must NOT pair up (prevents a stray lyrics folder polluting unrelated songs).
+     */
+    @Test
+    fun scanAll_attachesSidecarUriForSameDirectoryLrc() = runTest {
+        val folder = scratchDir.resolve("with_sidecar").also { it.mkdirs() }
+        folder.resolve("song.mp3").createNewFile()
+        folder.resolve("song.lrc").createNewFile()
+        folder.resolve("other.mp3").createNewFile() // no sidecar
+        // Unrelated .lrc in a different directory must NOT pair with other.mp3
+        val neighbour = scratchDir.resolve("neighbour").also { it.mkdirs() }
+        neighbour.resolve("other.lrc").createNewFile()
+
+        val scanner = FileScanner(context, sourceOf(Uri.fromFile(folder), Uri.fromFile(neighbour)))
+
+        val results = scanner.scanAll().associateBy { it.displayName }
+
+        assertEquals(2, results.size)
+        val withSidecar = results["song.mp3"]!!
+        assertTrue("song.mp3 should have a sidecar URI", withSidecar.lrcSidecarUri != null)
+        val withoutSidecar = results["other.mp3"]!!
+        assertEquals("other.mp3's sidecar is in a different folder, must not pair", null, withoutSidecar.lrcSidecarUri)
+    }
+
+    /**
+     * Sidecar basename match is case-insensitive — `song.MP3` + `SONG.lrc` must still pair.
+     */
+    @Test
+    fun scanAll_sidecarBasenameMatchIsCaseInsensitive() = runTest {
+        val folder = scratchDir.resolve("case").also { it.mkdirs() }
+        folder.resolve("Song.MP3").createNewFile()
+        folder.resolve("song.LRC").createNewFile()
+
+        val scanner = FileScanner(context, sourceOf(Uri.fromFile(folder)))
+
+        val result = scanner.scanAll().single()
+        assertTrue("case-insensitive match expected", result.lrcSidecarUri != null)
+    }
+
+    /**
      * If the same URI appears via multiple registered folders (or the same file is reachable by
      * two different registered roots), [FileScanner.scanAll] must deduplicate and return it once.
      */
