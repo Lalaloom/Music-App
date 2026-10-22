@@ -30,6 +30,7 @@
     <string name="navigator_save_changes">Save changes to %1$s</string>
     <string name="navigator_move_up_cd">Move earlier</string>
     <string name="navigator_move_down_cd">Move later</string>
+    <string name="navigator_drag_handle_cd">Drag to reorder</string>
     <string name="navigator_remove_from_queue_cd">Remove from queue</string>
     <string name="navigator_tab_setlist">Setlist</string>
     <string name="navigator_tab_library">Library</string>

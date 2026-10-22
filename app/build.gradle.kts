@@ -114,6 +114,9 @@ dependencies {
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.kotlinx.serialization.json)
 
+    // Drag-to-reorder on top of LazyColumn
+    implementation(libs.reorderable)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.okhttp.mockwebserver)
