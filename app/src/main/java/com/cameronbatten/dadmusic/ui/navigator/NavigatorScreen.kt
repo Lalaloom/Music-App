@@ -16,6 +16,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -24,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -32,8 +37,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cameronbatten.dadmusic.R
 import com.cameronbatten.dadmusic.ui.common.MiniPlayer
+import com.cameronbatten.dadmusic.ui.search.AddToQueueOutcome
 import com.cameronbatten.dadmusic.ui.search.SearchPane
 import com.cameronbatten.dadmusic.ui.setlist.SetlistPane
+import kotlinx.coroutines.launch
 
 /**
  * Primary screen for M2+. Replaces [com.cameronbatten.dadmusic.ui.library.LibraryScreen]
@@ -56,6 +63,39 @@ fun NavigatorScreen(
     val hasDiverged by viewModel.hasDiverged.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val currentSong by viewModel.currentSong.collectAsStateWithLifecycle()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
+    val undoLabel = stringResource(R.string.search_undo)
+    val alreadyLabel = stringResource(R.string.search_already_present_dismiss)
+
+    val onAddResult: (AddToQueueOutcome) -> Unit = handler@{ outcome ->
+        snackbarScope.launch {
+            // Dismiss any pending snackbar so a rapid second add doesn't queue
+            // behind the first — the Undo button always targets the latest add.
+            snackbarHostState.currentSnackbarData?.dismiss()
+            when (outcome) {
+                is AddToQueueOutcome.Added -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = "“${outcome.title}” added to queue",
+                        actionLabel = undoLabel,
+                        withDismissAction = true,
+                        duration = SnackbarDuration.Long, // 10 s per spec §5.7
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.removeFromQueue(outcome.position)
+                    }
+                }
+                is AddToQueueOutcome.AlreadyPresent -> {
+                    snackbarHostState.showSnackbar(
+                        message = "“${outcome.title}” is already in your queue",
+                        actionLabel = alreadyLabel,
+                        duration = SnackbarDuration.Short,
+                    )
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -91,6 +131,7 @@ fun NavigatorScreen(
                 )
             }
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         BoxWithConstraints(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
@@ -117,7 +158,10 @@ fun NavigatorScreen(
                         modifier = Modifier.width(1.dp).fillMaxHeight(),
                         color = MaterialTheme.colorScheme.surfaceVariant,
                     )
-                    SearchPane(modifier = Modifier.weight(1f).fillMaxHeight())
+                    SearchPane(
+                        onAddResult = onAddResult,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
                 }
             } else {
                 var showingSetlist by remember { mutableStateOf(true) }
@@ -152,7 +196,10 @@ fun NavigatorScreen(
                             modifier = Modifier.fillMaxSize(),
                         )
                     } else {
-                        SearchPane(modifier = Modifier.fillMaxSize())
+                        SearchPane(
+                            onAddResult = onAddResult,
+                            modifier = Modifier.fillMaxSize(),
+                        )
                     }
                 }
             }

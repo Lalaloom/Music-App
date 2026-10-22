@@ -23,7 +23,7 @@ import javax.inject.Singleton
 class LiveQueueManager @Inject constructor(
     private val liveQueueDao: LiveQueueDao,
     private val setlistDao: SetlistDao,
-) {
+) : QueueAppender {
 
     fun observe(): Flow<List<LiveQueueEntry>> = liveQueueDao.observeAll()
 
@@ -52,10 +52,18 @@ class LiveQueueManager @Inject constructor(
         liveQueueDao.deleteAll()
     }
 
-    /** Append a song to the end of the queue. Returns the row that was inserted. */
-    suspend fun append(songId: Long, source: QueueSource): LiveQueueEntry {
-        val maxPos = liveQueueDao.maxPosition() ?: 0
-        val parent = liveQueueDao.getAll().firstOrNull()?.parentSetlistId
+    /**
+     * Append a song to the end of the queue. If the song is already in the
+     * queue the existing row is returned via [AppendResult.AlreadyPresent] —
+     * we never duplicate a song, which also keeps the UI's `key = songId`
+     * stable across emissions.
+     */
+    override suspend fun append(songId: Long, source: QueueSource): AppendResult {
+        val current = liveQueueDao.getAll()
+        current.firstOrNull { it.songId == songId }?.let { return AppendResult.AlreadyPresent(it) }
+
+        val maxPos = current.lastOrNull()?.position ?: 0
+        val parent = current.firstOrNull()?.parentSetlistId
         val entry = LiveQueueEntry(
             position = maxPos + POSITION_STEP,
             songId = songId,
@@ -63,7 +71,7 @@ class LiveQueueManager @Inject constructor(
             parentSetlistId = parent,
         )
         liveQueueDao.insert(entry)
-        return entry
+        return AppendResult.Added(entry)
     }
 
     suspend fun remove(position: Int) {

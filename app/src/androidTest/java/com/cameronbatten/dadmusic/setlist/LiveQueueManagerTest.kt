@@ -110,9 +110,9 @@ class LiveQueueManagerTest {
         manager.openSetlist(setlistId)
 
         val c = insertSong("c")
-        val appended = manager.append(c, QueueSource.REQUEST)
+        val result = manager.append(c, QueueSource.REQUEST) as com.cameronbatten.dadmusic.setlist.AppendResult.Added
 
-        assertEquals(3000, appended.position)
+        assertEquals(3000, result.entry.position)
         val snap = manager.snapshot()
         assertEquals(QueueSource.REQUEST, snap.last().source)
         assertEquals(setlistId, snap.last().parentSetlistId)
@@ -127,6 +127,19 @@ class LiveQueueManagerTest {
         val snap = manager.snapshot()
         assertEquals(1, snap.size)
         assertNull(snap.first().parentSetlistId)
+    }
+
+    @Test
+    fun append_duplicateSongId_returnsAlreadyPresentWithoutDuplicating() = runTest {
+        val a = insertSong("a")
+
+        val first = manager.append(a, QueueSource.REQUEST)
+        val second = manager.append(a, QueueSource.REQUEST)
+
+        assertTrue(first is com.cameronbatten.dadmusic.setlist.AppendResult.Added)
+        assertTrue(second is com.cameronbatten.dadmusic.setlist.AppendResult.AlreadyPresent)
+        assertEquals(first.entry.position, second.entry.position)
+        assertEquals(1, manager.snapshot().size)
     }
 
     @Test

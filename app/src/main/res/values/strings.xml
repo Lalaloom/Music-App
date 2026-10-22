@@ -35,8 +35,14 @@
     <string name="navigator_tab_setlist">Setlist</string>
     <string name="navigator_tab_library">Library</string>
 
-    <!-- Search pane (Task 10 stub, filled in Task 11) -->
-    <string name="search_pane_stub">Library search coming next.</string>
+    <!-- Search pane -->
+    <string name="search_placeholder">Search library</string>
+    <string name="search_clear_cd">Clear search</string>
+    <string name="search_add_to_queue_cd">Add to queue</string>
+    <string name="search_empty_hint">Type to search your library.</string>
+    <string name="search_no_results">No matches.</string>
+    <string name="search_undo">Undo</string>
+    <string name="search_already_present_dismiss">OK</string>
 
     <!-- Player screen -->
     <string name="player_play_pause_description">Play / Pause</string>
