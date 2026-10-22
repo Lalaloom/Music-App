@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cameronbatten.dadmusic.R
+import com.cameronbatten.dadmusic.data.db.FileType
 import com.cameronbatten.dadmusic.ui.common.MiniPlayer
 import com.cameronbatten.dadmusic.ui.search.AddToQueueOutcome
 import com.cameronbatten.dadmusic.ui.search.SearchPane
@@ -54,7 +56,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun NavigatorScreen(
     onOpenFolders: () -> Unit,
-    onSongPlaying: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenPlayer: (FileType) -> Unit,
     viewModel: NavigatorViewModel = hiltViewModel(),
 ) {
     val setlists by viewModel.setlists.collectAsStateWithLifecycle()
@@ -113,6 +116,12 @@ fun NavigatorScreen(
                             contentDescription = stringResource(R.string.folders_icon_description),
                         )
                     }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.settings_open_cd),
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
@@ -126,7 +135,7 @@ fun NavigatorScreen(
                 MiniPlayer(
                     song = song,
                     isPlaying = playbackState.isPlaying,
-                    onBodyClick = onSongPlaying,
+                    onBodyClick = { onOpenPlayer(song.fileType) },
                     onPlayPause = viewModel::playPause,
                 )
             }
@@ -148,9 +157,9 @@ fun NavigatorScreen(
                         onApplyOrder = viewModel::applyQueueOrder,
                         onRemove = viewModel::removeFromQueue,
                         onSaveToParent = viewModel::saveQueueToParent,
-                        onRowTap = { position ->
+                        onRowTap = { position, fileType ->
                             viewModel.playSongAt(position)
-                            onSongPlaying()
+                            onOpenPlayer(fileType)
                         },
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
@@ -189,9 +198,9 @@ fun NavigatorScreen(
                             onApplyOrder = viewModel::applyQueueOrder,
                             onRemove = viewModel::removeFromQueue,
                             onSaveToParent = viewModel::saveQueueToParent,
-                            onRowTap = { position ->
+                            onRowTap = { position, fileType ->
                                 viewModel.playSongAt(position)
-                                onSongPlaying()
+                                onOpenPlayer(fileType)
                             },
                             modifier = Modifier.fillMaxSize(),
                         )

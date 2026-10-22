@@ -117,6 +117,9 @@ dependencies {
     // Drag-to-reorder on top of LazyColumn
     implementation(libs.reorderable)
 
+    // DataStore Preferences (user settings)
+    implementation(libs.androidx.datastore.preferences)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.okhttp.mockwebserver)

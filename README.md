@@ -10,6 +10,19 @@ Built with Kotlin, Jetpack Compose, Media3 ExoPlayer, Room, and Hilt.
 - Android SDK with build-tools 34 and platform 34 (AGP will auto-download on first build if `sdk.dir` is set in `local.properties`)
 - **JDK 17 or 21** on your development machine (the Android Gradle Plugin and Kotlin DSL require it)
 
+## Network use
+
+The app contacts exactly one external host: **`https://lrclib.net`**, used to fetch
+time-synced song lyrics. The LRCLIB project is a free, no-authentication lyric
+service. Lyrics are cached locally in `filesDir/lyrics/<songId>.lrc` after the
+first successful fetch, so the Zen performance view works fully offline once a
+song has lyrics attached. The `INTERNET` permission in the manifest exists
+solely for this purpose; no other network calls are made.
+
+Pre-existing `.lrc` sidecar files next to music on disk are honoured verbatim
+and preempt the LRCLIB fetch — the app will never overwrite a user's own
+`.lrc` file.
+
 ### Pointing Gradle at your JDK
 
 The project does NOT pin a JDK path (so clones and CI stay portable). Pick one of these:

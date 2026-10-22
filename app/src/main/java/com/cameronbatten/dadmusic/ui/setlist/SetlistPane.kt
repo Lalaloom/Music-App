@@ -34,6 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cameronbatten.dadmusic.R
+import com.cameronbatten.dadmusic.data.db.FileType
 import com.cameronbatten.dadmusic.data.db.Setlist
 import com.cameronbatten.dadmusic.ui.navigator.SongInQueue
 import sh.calvin.reorderable.ReorderableItem
@@ -54,7 +55,7 @@ fun SetlistPane(
     onApplyOrder: (songIds: List<Long>) -> Unit,
     onRemove: (position: Int) -> Unit,
     onSaveToParent: () -> Unit,
-    onRowTap: (position: Int) -> Unit,
+    onRowTap: (position: Int, fileType: FileType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 12.dp)) {
@@ -114,7 +115,7 @@ private fun ReorderableQueueList(
     currentSongId: Long?,
     onApplyOrder: (songIds: List<Long>) -> Unit,
     onRemove: (position: Int) -> Unit,
-    onRowTap: (position: Int) -> Unit,
+    onRowTap: (position: Int, fileType: FileType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val lazyListState = rememberLazyListState()
@@ -168,7 +169,7 @@ private fun ReorderableQueueList(
                             onApplyOrder(ids)
                         },
                     ),
-                    onTap = { onRowTap(inQueue.entry.position) },
+                    onTap = { onRowTap(inQueue.entry.position, inQueue.song.fileType) },
                     onRemove = { onRemove(inQueue.entry.position) },
                 )
             }
