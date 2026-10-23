@@ -420,4 +420,48 @@ class LibraryImporterTest {
         assertNotNull("Rescan must preserve existing LRCLIB-fetched lyrics", stillThere)
         assertEquals(LyricsSource.LRCLIB, stillThere!!.source)
     }
+
+    // ── USER_EDIT rescan protection (M3 Task 8 / Review Focus #5) ─────────────
+
+    @Test
+    fun rescan_withSidecar_preservesUserEditedLyrics() = runTest {
+        // User scans a song with a sidecar, then manually edits lyrics (USER_EDIT),
+        // then rescans. The sidecar must NOT clobber the user's edit.
+        val sidecarUri = Uri.parse("content://test/useredit.lrc")
+        val file = discoveredFile(
+            uriString = "content://test/useredit.mp3",
+            lrcSidecarUri = sidecarUri,
+        )
+        val sidecarText = "[00:10.00]Sidecar line"
+        val userText = "[00:10.00]User's own line"
+        val importer = buildImporter(
+            files = listOf(file),
+            metaByUri = mapOf(file.uri.toString() to fileMetadata()),
+            sidecarByUri = mapOf(sidecarUri.toString() to sidecarText),
+        )
+
+        // First scan — sidecar is adopted.
+        importer.importAll()
+        val song = songDao.findByUri(file.uri.toString())!!
+        assertEquals(LyricsSource.DISK_SIDECAR, lyricsDao.findBySongId(song.id)!!.source)
+
+        // User edits lyrics in-app.
+        lyricsDao.upsert(
+            com.cameronbatten.dadmusic.data.db.Lyrics(
+                songId = song.id,
+                rawLrc = userText,
+                hasTimings = true,
+                source = LyricsSource.USER_EDIT,
+                modifiedUtc = 2L,
+            ),
+        )
+
+        // Rescan — sidecar is still present on disk, but USER_EDIT wins.
+        importer.importAll()
+
+        val after = lyricsDao.findBySongId(song.id)
+        assertNotNull(after)
+        assertEquals(LyricsSource.USER_EDIT, after!!.source)
+        assertEquals(userText, after.rawLrc)
+    }
 }

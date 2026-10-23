@@ -95,4 +95,10 @@
     <!-- Common -->
     <string name="back_description">Navigate back</string>
     <string name="folders_icon_description">Open folders</string>
+
+    <!-- Lyrics editor -->
+    <string name="lyrics_editor_title_fallback">Edit lyrics</string>
+    <string name="lyrics_editor_save_cd">Save lyrics</string>
+    <string name="lyrics_editor_placeholder">Paste LRC or plain lyrics…</string>
+    <string name="zen_edit_lyrics_description">Edit lyrics</string>
 </resources>

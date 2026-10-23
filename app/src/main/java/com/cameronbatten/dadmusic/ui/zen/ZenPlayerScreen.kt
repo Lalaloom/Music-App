@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
@@ -63,6 +64,7 @@ private const val CONTROLS_AUTO_HIDE_MS = 3_000L
 @Composable
 fun ZenPlayerScreen(
     onBack: () -> Unit,
+    onEditLyrics: (songId: Long) -> Unit = {},
     viewModel: ZenPlayerViewModel = hiltViewModel(),
 ) {
     val lines by viewModel.parsedLines.collectAsStateWithLifecycle()
@@ -125,10 +127,12 @@ fun ZenPlayerScreen(
                 isPlaying = playbackState.isPlaying,
                 positionMs = playbackState.positionMs,
                 durationMs = playbackState.durationMs,
+                canEdit = currentSong != null,
                 onPlayPause = viewModel::playPause,
                 onSkipNext = viewModel::skipNext,
                 onSkipPrevious = viewModel::skipPrevious,
                 onSeek = viewModel::seek,
+                onEditLyrics = { currentSong?.id?.let(onEditLyrics) },
             )
         }
     }
@@ -224,10 +228,12 @@ private fun TransportOverlay(
     isPlaying: Boolean,
     positionMs: Long,
     durationMs: Long,
+    canEdit: Boolean,
     onPlayPause: () -> Unit,
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit,
     onSeek: (Long) -> Unit,
+    onEditLyrics: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -285,6 +291,18 @@ private fun TransportOverlay(
                     imageVector = Icons.Default.SkipNext,
                     contentDescription = stringResource(R.string.player_skip_next_description),
                     tint = Color.White,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            IconButton(
+                onClick = onEditLyrics,
+                enabled = canEdit,
+                modifier = Modifier.size(48.dp).testTag("zen_edit_lyrics"),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = stringResource(R.string.zen_edit_lyrics_description),
+                    tint = if (canEdit) Color.White else Color.White.copy(alpha = 0.3f),
                     modifier = Modifier.fillMaxSize(),
                 )
             }

@@ -173,21 +173,26 @@ class LibraryImporter @Inject constructor(
                 file.rootFolderName?.let { folderNames[folderUri] = it }
             }
 
-            // Adopt sidecar lyrics if any.
+            // Adopt sidecar lyrics if any — but never overwrite a USER_EDIT row.
             val sidecarUri = file.lrcSidecarUri
             if (sidecarUri != null) {
-                val text = sidecarSource.read(sidecarUri)
-                if (text != null) {
-                    val hasTimings = LrcParser.parse(text).any { it.isSynced }
-                    lyricsDao.upsert(
-                        Lyrics(
-                            songId = songId,
-                            rawLrc = text,
-                            hasTimings = hasTimings,
-                            source = LyricsSource.DISK_SIDECAR,
-                            modifiedUtc = System.currentTimeMillis(),
-                        ),
-                    )
+                val existingLyrics = lyricsDao.findBySongId(songId)
+                if (existingLyrics?.source == LyricsSource.USER_EDIT) {
+                    // Review Focus #5: user-authored content wins. Leave the row alone.
+                } else {
+                    val text = sidecarSource.read(sidecarUri)
+                    if (text != null) {
+                        val hasTimings = LrcParser.parse(text).any { it.isSynced }
+                        lyricsDao.upsert(
+                            Lyrics(
+                                songId = songId,
+                                rawLrc = text,
+                                hasTimings = hasTimings,
+                                source = LyricsSource.DISK_SIDECAR,
+                                modifiedUtc = System.currentTimeMillis(),
+                            ),
+                        )
+                    }
                 }
             }
         }

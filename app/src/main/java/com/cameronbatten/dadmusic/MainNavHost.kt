@@ -9,11 +9,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.cameronbatten.dadmusic.data.db.FileType
 import com.cameronbatten.dadmusic.ui.folders.FolderPickerScreen
+import com.cameronbatten.dadmusic.ui.lyricseditor.LyricsEditorScreen
 import com.cameronbatten.dadmusic.ui.navigator.NavigatorScreen
 import com.cameronbatten.dadmusic.ui.onboarding.OnboardingHost
 import com.cameronbatten.dadmusic.ui.player.PlayerScreen
@@ -64,10 +67,19 @@ fun MainNavHost(appStartViewModel: AppStartViewModel = hiltViewModel()) {
                     PlayerScreen(onBack = { navController.popBackStack() })
                 }
                 composable("zen") {
-                    ZenPlayerScreen(onBack = { navController.popBackStack() })
+                    ZenPlayerScreen(
+                        onBack = { navController.popBackStack() },
+                        onEditLyrics = { songId -> navController.navigate("editor/$songId") },
+                    )
                 }
                 composable("settings") {
                     SettingsScreen(onBack = { navController.popBackStack() })
+                }
+                composable(
+                    route = "editor/{songId}",
+                    arguments = listOf(navArgument("songId") { type = NavType.LongType }),
+                ) {
+                    LyricsEditorScreen(onBack = { navController.popBackStack() })
                 }
             }
         }
