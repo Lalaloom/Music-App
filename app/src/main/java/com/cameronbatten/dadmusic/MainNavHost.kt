@@ -16,6 +16,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.cameronbatten.dadmusic.data.db.FileType
 import com.cameronbatten.dadmusic.ui.admin.AdminScreen
+import com.cameronbatten.dadmusic.ui.band.BandModeScreen
 import com.cameronbatten.dadmusic.ui.chord.ChordSheetListScreen
 import com.cameronbatten.dadmusic.ui.chord.ChordSheetViewerScreen
 import com.cameronbatten.dadmusic.ui.folders.FolderPickerScreen
@@ -110,10 +111,14 @@ fun MainNavHost(appStartViewModel: AppStartViewModel = hiltViewModel()) {
                         onBack = { navController.popBackStack() },
                         onOpenAdmin = { navController.navigate("admin") },
                         onOpenPedals = { navController.navigate("pedals") },
+                        onOpenBand = { navController.navigate("band") },
                     )
                 }
                 composable("pedals") {
                     PedalBindingsScreen(onBack = { navController.popBackStack() })
+                }
+                composable("band") {
+                    BandModeScreen(onBack = { navController.popBackStack() })
                 }
                 composable("admin") {
                     AdminScreen(
