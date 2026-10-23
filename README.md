@@ -110,6 +110,13 @@ MUSICAPP_KEYSTORE_PATH=C:\\Users\\you\\dad-music-release.jks
 # Without the four properties above the output will be app-release-unsigned.apk
 ```
 
+Before shipping a build, walk the current milestone's smoke checklist end-to-end
+on the Xiaomi tablet (and emulator for parts an emulator can hit):
+
+- `docs/superpowers/manual-smoke-M1.md`
+- `docs/superpowers/manual-smoke-M2.md`
+- `docs/superpowers/manual-smoke-M3.md`
+
 ---
 
 ## Installing the APK on an Android device (musician's guide)
