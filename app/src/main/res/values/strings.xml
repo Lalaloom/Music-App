@@ -163,6 +163,15 @@
     <string name="pedal_capture_body">The next key press will be bound to %1$s.</string>
     <string name="pedal_capture_cancel">Cancel</string>
 
+    <!-- PDF viewer (M8) -->
+    <string name="pdf_sheets_open_cd">Sheet music (PDF)</string>
+    <string name="pdf_list_title">PDF sheets</string>
+    <string name="pdf_list_empty">No PDFs yet. Drop .pdf files into one of your folders and tap Scan now.</string>
+    <string name="pdf_viewer_fallback_title">Untitled PDF</string>
+    <string name="pdf_viewer_page_counter">Page %1$d of %2$d</string>
+    <string name="pdf_viewer_prev_cd">Previous page</string>
+    <string name="pdf_viewer_next_cd">Next page</string>
+
     <!-- Chord sheets (M5) -->
     <string name="chord_sheets_open_cd">Chord sheets</string>
     <string name="chord_list_title">Chord sheets</string>

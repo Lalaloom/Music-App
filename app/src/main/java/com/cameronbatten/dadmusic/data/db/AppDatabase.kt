@@ -12,8 +12,9 @@ import androidx.room.TypeConverters
         SetlistEntry::class,
         LiveQueueEntry::class,
         ChordSheet::class,
+        PdfSheet::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(
@@ -28,4 +29,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun setlistDao(): SetlistDao
     abstract fun liveQueueDao(): LiveQueueDao
     abstract fun chordSheetDao(): ChordSheetDao
+    abstract fun pdfSheetDao(): PdfSheetDao
 }
