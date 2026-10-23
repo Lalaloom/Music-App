@@ -28,6 +28,7 @@ import com.cameronbatten.dadmusic.ui.pdf.PdfListScreen
 import com.cameronbatten.dadmusic.ui.pdf.PdfViewerScreen
 import com.cameronbatten.dadmusic.ui.pedal.PedalBindingsScreen
 import com.cameronbatten.dadmusic.ui.player.PlayerScreen
+import com.cameronbatten.dadmusic.ui.sharing.SetlistSharingScreen
 import com.cameronbatten.dadmusic.ui.settings.SettingsScreen
 import com.cameronbatten.dadmusic.ui.zen.ZenPlayerScreen
 
@@ -112,6 +113,7 @@ fun MainNavHost(appStartViewModel: AppStartViewModel = hiltViewModel()) {
                         onOpenAdmin = { navController.navigate("admin") },
                         onOpenPedals = { navController.navigate("pedals") },
                         onOpenBand = { navController.navigate("band") },
+                        onOpenShareSetlists = { navController.navigate("share-setlists") },
                     )
                 }
                 composable("pedals") {
@@ -119,6 +121,9 @@ fun MainNavHost(appStartViewModel: AppStartViewModel = hiltViewModel()) {
                 }
                 composable("band") {
                     BandModeScreen(onBack = { navController.popBackStack() })
+                }
+                composable("share-setlists") {
+                    SetlistSharingScreen(onBack = { navController.popBackStack() })
                 }
                 composable("admin") {
                     AdminScreen(
