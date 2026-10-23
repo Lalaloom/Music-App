@@ -174,10 +174,11 @@ class PlayerScreenTest {
             .onNodeWithTag("player_video_view")
             .assertIsDisplayed()
 
-        // Audio-only controls must NOT appear
+        // Video mode intentionally shows an always-visible play/pause overlay
+        // (karaoke performers need to glance and tap mid-song, no auto-fade).
         composeTestRule
             .onNodeWithTag("player_play_pause")
-            .assertDoesNotExist()
+            .assertIsDisplayed()
     }
 
     /**

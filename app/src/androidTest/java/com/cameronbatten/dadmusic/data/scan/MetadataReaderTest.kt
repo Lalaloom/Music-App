@@ -1,9 +1,11 @@
 package com.cameronbatten.dadmusic.data.scan
 
 import android.content.Context
+import android.content.res.AssetManager
 import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -33,11 +35,17 @@ import java.io.File
 class MetadataReaderTest {
 
     private lateinit var context: Context
+    private lateinit var testAssets: AssetManager
     private lateinit var metadataReader: MetadataReader
 
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
+        // Fixture files live in app/src/androidTest/assets — they are bundled
+        // with the TEST APK, not the main APK, so we read them through the
+        // instrumentation context's AssetManager rather than the target
+        // context's.
+        testAssets = InstrumentationRegistry.getInstrumentation().context.assets
         metadataReader = MetadataReader(context)
     }
 
@@ -49,7 +57,7 @@ class MetadataReaderTest {
      */
     private fun copyAssetToCache(assetName: String): Uri {
         val dest = File(context.cacheDir, assetName)
-        context.assets.open(assetName).use { input ->
+        testAssets.open(assetName).use { input ->
             dest.outputStream().use { output ->
                 input.copyTo(output)
             }
