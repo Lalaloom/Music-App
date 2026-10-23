@@ -150,6 +150,18 @@
     <string name="admin_reset_confirm2_body">Type RESET (upper-case) to confirm.</string>
     <string name="admin_reset_confirm2_cta">Reset</string>
 
+    <!-- Shared setlists (M10) -->
+    <string name="settings_section_share">Shared setlists</string>
+    <string name="settings_share_cta">Share setlists (export / import)</string>
+    <string name="share_screen_title">Share setlists</string>
+    <string name="share_import_cta">Import a .setlist.json</string>
+    <string name="share_export_label">Export a local setlist</string>
+    <string name="share_export_cd">Export this setlist</string>
+    <string name="share_no_setlists">You have no local setlists yet. Scan a folder first.</string>
+    <string name="share_missing_title">Some songs were not matched</string>
+    <string name="share_missing_body">Imported %1$d / skipped %2$d. The skipped songs don\'t exist in your local library:</string>
+    <string name="share_missing_more">… and %1$d more.</string>
+
     <!-- Band mode (M9) -->
     <string name="settings_section_band">Band mode</string>
     <string name="settings_band_cta">Band mode (local network)</string>

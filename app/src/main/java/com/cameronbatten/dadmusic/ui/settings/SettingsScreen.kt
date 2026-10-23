@@ -53,6 +53,7 @@ fun SettingsScreen(
     onOpenAdmin: () -> Unit = {},
     onOpenPedals: () -> Unit = {},
     onOpenBand: () -> Unit = {},
+    onOpenShareSetlists: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val offset by viewModel.lyricOffsetMs.collectAsStateWithLifecycle()
@@ -158,6 +159,18 @@ fun SettingsScreen(
                     .heightIn(min = 48.dp),
             ) {
                 Text(stringResource(R.string.settings_band_cta))
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            SectionHeader(stringResource(R.string.settings_section_share))
+            Button(
+                onClick = onOpenShareSetlists,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp),
+            ) {
+                Text(stringResource(R.string.settings_share_cta))
             }
 
             Spacer(Modifier.height(24.dp))
