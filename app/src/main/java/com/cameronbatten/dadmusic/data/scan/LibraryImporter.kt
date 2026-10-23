@@ -75,6 +75,7 @@ class LibraryImporter @Inject constructor(
     private val sidecarSource: SidecarLyricsSource,
     private val setlistDao: SetlistDao,
     private val chordSheetDao: com.cameronbatten.dadmusic.data.db.ChordSheetDao,
+    private val pdfSheetDao: com.cameronbatten.dadmusic.data.db.PdfSheetDao,
 ) : LibraryImporterSource {
 
     override suspend fun importAll(): ImportResult = withContext(Dispatchers.IO) {
@@ -84,6 +85,8 @@ class LibraryImporter @Inject constructor(
             songDao.getAll().associateBy { it.uri }.toMutableMap()
         val chordOrphans: MutableMap<String, com.cameronbatten.dadmusic.data.db.ChordSheet> =
             chordSheetDao.getAll().associateBy { it.uri }.toMutableMap()
+        val pdfOrphans: MutableMap<String, com.cameronbatten.dadmusic.data.db.PdfSheet> =
+            pdfSheetDao.getAll().associateBy { it.uri }.toMutableMap()
 
         var added = 0
         var updated = 0
@@ -102,8 +105,11 @@ class LibraryImporter @Inject constructor(
                 processChordSheet(file, uriString, chordOrphans)
                 continue
             }
-            // PDFs are discovered but handled in M8; skip for now.
-            if (ext in PDF_EXTENSIONS) continue
+            // PDF sheet music lands in its own table. (M8)
+            if (ext in PDF_EXTENSIONS) {
+                processPdfSheet(file, uriString, pdfOrphans)
+                continue
+            }
 
             val metadata = metadataReader.read(file.uri)
             val parsed = FilenameParser.parse(file.displayName)
@@ -221,6 +227,10 @@ class LibraryImporter @Inject constructor(
         for (dbUri in chordOrphans.keys) {
             chordSheetDao.deleteByUri(dbUri)
         }
+        // Prune PDFs whose files are gone.
+        for (dbUri in pdfOrphans.keys) {
+            pdfSheetDao.deleteByUri(dbUri)
+        }
 
         syncSetlists(songIdByFolder, folderNames)
 
@@ -233,6 +243,28 @@ class LibraryImporter @Inject constructor(
      * present; falls back to the filename (minus extension) for the title.
      * Reuses [sidecarSource] as a generic SAF-document text reader.
      */
+    /** PDF files: minimal row keyed by URI; filename sans extension is the title. */
+    private suspend fun processPdfSheet(
+        file: DiscoveredFile,
+        uriString: String,
+        pdfOrphans: MutableMap<String, com.cameronbatten.dadmusic.data.db.PdfSheet>,
+    ) {
+        val title = file.displayName.substringBeforeLast('.', file.displayName)
+        val existing = pdfOrphans.remove(uriString)
+        val row = (existing ?: com.cameronbatten.dadmusic.data.db.PdfSheet(
+            uri = uriString,
+            title = title,
+            folderUri = file.rootFolderUri,
+            folderName = file.rootFolderName,
+            dateAdded = System.currentTimeMillis(),
+        )).copy(
+            title = title,
+            folderUri = file.rootFolderUri,
+            folderName = file.rootFolderName,
+        )
+        pdfSheetDao.upsert(row)
+    }
+
     private suspend fun processChordSheet(
         file: DiscoveredFile,
         uriString: String,

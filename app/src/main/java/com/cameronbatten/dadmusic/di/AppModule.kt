@@ -7,6 +7,7 @@ import com.cameronbatten.dadmusic.data.db.AppDatabase
 import com.cameronbatten.dadmusic.data.db.ChordSheetDao
 import com.cameronbatten.dadmusic.data.db.LiveQueueDao
 import com.cameronbatten.dadmusic.data.db.LyricsDao
+import com.cameronbatten.dadmusic.data.db.PdfSheetDao
 import com.cameronbatten.dadmusic.data.db.SetlistDao
 import com.cameronbatten.dadmusic.data.db.SongDao
 import dagger.Module
@@ -54,6 +55,9 @@ object AppModule {
 
     @Provides
     fun provideChordSheetDao(db: AppDatabase): ChordSheetDao = db.chordSheetDao()
+
+    @Provides
+    fun providePdfSheetDao(db: AppDatabase): PdfSheetDao = db.pdfSheetDao()
 
     @Provides
     @Singleton

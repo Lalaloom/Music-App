@@ -23,6 +23,8 @@ import com.cameronbatten.dadmusic.ui.lyricseditor.AdvancedLyricsEditorScreen
 import com.cameronbatten.dadmusic.ui.lyricseditor.LyricsEditorScreen
 import com.cameronbatten.dadmusic.ui.navigator.NavigatorScreen
 import com.cameronbatten.dadmusic.ui.onboarding.OnboardingHost
+import com.cameronbatten.dadmusic.ui.pdf.PdfListScreen
+import com.cameronbatten.dadmusic.ui.pdf.PdfViewerScreen
 import com.cameronbatten.dadmusic.ui.pedal.PedalBindingsScreen
 import com.cameronbatten.dadmusic.ui.player.PlayerScreen
 import com.cameronbatten.dadmusic.ui.settings.SettingsScreen
@@ -57,6 +59,7 @@ fun MainNavHost(appStartViewModel: AppStartViewModel = hiltViewModel()) {
                         onOpenFolders = { navController.navigate("folders") },
                         onOpenSettings = { navController.navigate("settings") },
                         onOpenChordSheets = { navController.navigate("chords") },
+                        onOpenPdfSheets = { navController.navigate("pdfs") },
                         onOpenPlayer = { fileType ->
                             val route = when (fileType) {
                                 FileType.AUDIO -> "zen"
@@ -77,6 +80,18 @@ fun MainNavHost(appStartViewModel: AppStartViewModel = hiltViewModel()) {
                     arguments = listOf(navArgument("sheetId") { type = NavType.LongType }),
                 ) {
                     ChordSheetViewerScreen(onBack = { navController.popBackStack() })
+                }
+                composable("pdfs") {
+                    PdfListScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenPdf = { id -> navController.navigate("pdf/$id") },
+                    )
+                }
+                composable(
+                    route = "pdf/{sheetId}",
+                    arguments = listOf(navArgument("sheetId") { type = NavType.LongType }),
+                ) {
+                    PdfViewerScreen(onBack = { navController.popBackStack() })
                 }
                 composable("folders") {
                     FolderPickerScreen(onDone = { navController.popBackStack() })
