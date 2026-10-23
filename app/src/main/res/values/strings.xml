@@ -101,6 +101,12 @@
     <string name="lyrics_editor_save_cd">Save lyrics</string>
     <string name="lyrics_editor_placeholder">Paste LRC or plain lyrics…</string>
     <string name="zen_edit_lyrics_description">Edit lyrics</string>
+    <string name="lyrics_editor_advanced_cd">Advanced editor</string>
+    <string name="lyrics_editor_rewind_cd">Rewind 2s and play</string>
+    <string name="lyrics_editor_stamp_cd">Stamp current time</string>
+    <string name="lyrics_editor_insert_cd">Insert line below</string>
+    <string name="lyrics_editor_remove_cd">Remove line</string>
+    <string name="lyrics_editor_clear_stamp">Clear timestamp</string>
 
     <!-- Admin / override (M4) -->
     <string name="admin_screen_title">Admin</string>
