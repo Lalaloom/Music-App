@@ -76,10 +76,43 @@ class UserPreferences @Inject constructor(
         store.edit { it[END_BEHAVIOUR_KEY] = behaviour.name }
     }
 
+    /**
+     * Admin-only entitlement override. `null` means "no override — use the
+     * entitlement source's own value". Non-null forces `proEnabled` to that
+     * boolean. Lets the author QA Free-tier behaviour on the sideload build.
+     */
+    val adminProOverride: Flow<Boolean?> = store.data
+        .catch { e -> if (e is IOException) emit(androidx.datastore.preferences.core.emptyPreferences()) else throw e }
+        .map { prefs ->
+            when (prefs[ADMIN_PRO_OVERRIDE_KEY]) {
+                "pro" -> true
+                "free" -> false
+                else -> null
+            }
+        }
+
+    suspend fun setAdminProOverride(value: Boolean?) {
+        store.edit {
+            if (value == null) it.remove(ADMIN_PRO_OVERRIDE_KEY)
+            else it[ADMIN_PRO_OVERRIDE_KEY] = if (value) "pro" else "free"
+        }
+    }
+
+    /**
+     * Admin → Reset device state: clear every preference except the SAF folder
+     * registry (`FolderRegistry` manages that separately in SharedPreferences,
+     * so it isn't touched here) and reset `onboarding_completed` so the next
+     * launch lands on the Welcome screen.
+     */
+    suspend fun resetAllExceptFolders() {
+        store.edit { it.clear() }
+    }
+
     private companion object {
         val LYRIC_OFFSET_KEY = longPreferencesKey("lyric_offset_ms")
         val FONT_SIZE_KEY = stringPreferencesKey("font_size_preset")
         val ONBOARDING_COMPLETED_KEY = booleanPreferencesKey("onboarding_completed")
         val END_BEHAVIOUR_KEY = stringPreferencesKey("end_behaviour")
+        val ADMIN_PRO_OVERRIDE_KEY = stringPreferencesKey("admin_pro_override")
     }
 }

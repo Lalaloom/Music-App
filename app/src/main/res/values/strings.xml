@@ -101,4 +101,46 @@
     <string name="lyrics_editor_save_cd">Save lyrics</string>
     <string name="lyrics_editor_placeholder">Paste LRC or plain lyrics…</string>
     <string name="zen_edit_lyrics_description">Edit lyrics</string>
+
+    <!-- Admin / override (M4) -->
+    <string name="admin_screen_title">Admin</string>
+    <string name="admin_section_entitlement">Entitlement</string>
+    <string name="admin_entitlement_state_pro">Current: Pro</string>
+    <string name="admin_entitlement_state_free">Current: Free</string>
+    <string name="admin_entitlement_default">Default</string>
+    <string name="admin_entitlement_force_pro">Force Pro</string>
+    <string name="admin_entitlement_force_free">Force Free</string>
+    <string name="admin_section_force">Force actions</string>
+    <string name="admin_force_rescan">Rescan now</string>
+    <string name="admin_force_clear_lyrics">Clear lyrics cache</string>
+    <string name="admin_force_refetch">Re-fetch all lyrics</string>
+    <string name="admin_work_rescan">Rescanning…</string>
+    <string name="admin_work_clear_lyrics">Clearing lyrics cache…</string>
+    <string name="admin_work_refetch">Re-fetching lyrics…</string>
+    <string name="admin_work_reset">Resetting device state…</string>
+    <string name="admin_confirm_clear_title">Clear every cached lyric?</string>
+    <string name="admin_confirm_clear_body">All downloaded and user-edited lyrics will be removed from the device. Your source files on disk are not touched.</string>
+    <string name="admin_confirm_refetch_title">Re-fetch every lyric?</string>
+    <string name="admin_confirm_refetch_body">Downloads a fresh LRC for every song whose status is MISSING. User-edited lyrics are not touched.</string>
+    <string name="admin_confirm_ok">OK</string>
+    <string name="admin_confirm_cancel">Cancel</string>
+    <string name="admin_section_songs">Song database</string>
+    <string name="admin_songs_filter_hint">Filter by title or artist</string>
+    <string name="admin_songs_empty">No songs match that filter.</string>
+    <string name="admin_songs_edit">Edit</string>
+    <string name="admin_songs_close">Close</string>
+    <string name="admin_songs_title_label">Title</string>
+    <string name="admin_songs_artist_label">Artist</string>
+    <string name="admin_songs_artist_placeholder">Unknown artist</string>
+    <string name="admin_songs_confirmed_label">Confirmed</string>
+    <string name="admin_songs_save">Save</string>
+    <string name="admin_section_danger">Danger zone</string>
+    <string name="admin_reset_blurb">Wipes the local database, lyric cache, and preferences. Your music files on disk and the folder permissions you granted stay. Re-launching opens the onboarding wizard.</string>
+    <string name="admin_reset_cta">Reset device state</string>
+    <string name="admin_reset_confirm1_title">Reset device state?</string>
+    <string name="admin_reset_confirm1_body">The library, lyrics, setlists, and live queue will be erased. Your source files and folder grants are kept. You cannot undo this.</string>
+    <string name="admin_reset_confirm1_cta">Continue</string>
+    <string name="admin_reset_confirm2_title">Last chance</string>
+    <string name="admin_reset_confirm2_body">Type RESET (upper-case) to confirm.</string>
+    <string name="admin_reset_confirm2_cta">Reset</string>
 </resources>

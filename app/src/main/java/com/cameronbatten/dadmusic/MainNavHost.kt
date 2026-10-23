@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.cameronbatten.dadmusic.data.db.FileType
+import com.cameronbatten.dadmusic.ui.admin.AdminScreen
 import com.cameronbatten.dadmusic.ui.folders.FolderPickerScreen
 import com.cameronbatten.dadmusic.ui.lyricseditor.LyricsEditorScreen
 import com.cameronbatten.dadmusic.ui.navigator.NavigatorScreen
@@ -73,7 +74,20 @@ fun MainNavHost(appStartViewModel: AppStartViewModel = hiltViewModel()) {
                     )
                 }
                 composable("settings") {
-                    SettingsScreen(onBack = { navController.popBackStack() })
+                    SettingsScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenAdmin = { navController.navigate("admin") },
+                    )
+                }
+                composable("admin") {
+                    AdminScreen(
+                        onBack = { navController.popBackStack() },
+                        onResetComplete = {
+                            navController.navigate("onboarding") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        },
+                    )
                 }
                 composable(
                     route = "editor/{songId}",

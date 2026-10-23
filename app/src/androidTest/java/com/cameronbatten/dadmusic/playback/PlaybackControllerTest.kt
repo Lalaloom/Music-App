@@ -8,6 +8,7 @@ import androidx.media3.session.SessionToken
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.cameronbatten.dadmusic.data.db.AppDatabase
 import com.cameronbatten.dadmusic.data.db.FileType
 import com.cameronbatten.dadmusic.data.db.Song
@@ -108,7 +109,12 @@ class PlaybackControllerTest {
 
     @After
     fun tearDown() {
-        controller.release()
+        // Media3's MediaController.removeListener (called from release()) must
+        // run on the application thread. The instrumentation thread is a
+        // different looper, so hop to the main thread for cleanup.
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            controller.release()
+        }
         db.close()
     }
 

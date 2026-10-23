@@ -1,5 +1,7 @@
 package com.cameronbatten.dadmusic.ui.settings
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,6 +32,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -43,10 +46,11 @@ import kotlin.math.roundToInt
 
 private const val OFFSET_RANGE_MS = 2_000f
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onOpenAdmin: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val offset by viewModel.lyricOffsetMs.collectAsStateWithLifecycle()
@@ -132,7 +136,23 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            SectionHeader(stringResource(R.string.settings_section_about))
+            // About section header is also the hidden admin entry point:
+            // long-press (≥ 500 ms) opens the admin / override screen. A short
+            // tap does nothing visible — the screen is intentionally
+            // undiscoverable for non-technical users (spec §5.12).
+            Text(
+                text = stringResource(R.string.settings_section_about),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
+                    .combinedClickable(
+                        onClick = {},
+                        onLongClick = onOpenAdmin,
+                    )
+                    .testTag("settings_about_header"),
+            )
             Text(
                 text = stringResource(R.string.settings_about_app, BuildConfig.VERSION_NAME),
                 style = MaterialTheme.typography.bodyMedium,
