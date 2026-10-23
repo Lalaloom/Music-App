@@ -13,6 +13,10 @@ import javax.inject.Singleton
 
 private val ALLOWED_EXTENSIONS = setOf(
     "mp3", "m4a", "wav", "flac", "aac", "mp4", "mkv", "webm",
+    // ChordPro + flat text chord-sheet variants (M5).
+    "cho", "chordpro", "pro", "crd",
+    // PDF sheet music (M8).
+    "pdf",
 )
 
 /**

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.cameronbatten.dadmusic.data.db.ALL_MIGRATIONS
 import com.cameronbatten.dadmusic.data.db.AppDatabase
+import com.cameronbatten.dadmusic.data.db.ChordSheetDao
 import com.cameronbatten.dadmusic.data.db.LiveQueueDao
 import com.cameronbatten.dadmusic.data.db.LyricsDao
 import com.cameronbatten.dadmusic.data.db.SetlistDao
@@ -50,6 +51,9 @@ object AppModule {
 
     @Provides
     fun provideLiveQueueDao(db: AppDatabase): LiveQueueDao = db.liveQueueDao()
+
+    @Provides
+    fun provideChordSheetDao(db: AppDatabase): ChordSheetDao = db.chordSheetDao()
 
     @Provides
     @Singleton

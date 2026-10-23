@@ -39,6 +39,7 @@ class LibraryImporterTest {
     private lateinit var songDao: SongDao
     private lateinit var lyricsDao: LyricsDao
     private lateinit var setlistDao: SetlistDao
+    private lateinit var chordSheetDao: com.cameronbatten.dadmusic.data.db.ChordSheetDao
 
     @Before
     fun setUp() {
@@ -49,6 +50,7 @@ class LibraryImporterTest {
         songDao = db.songDao()
         lyricsDao = db.lyricsDao()
         setlistDao = db.setlistDao()
+        chordSheetDao = db.chordSheetDao()
     }
 
     @After
@@ -113,6 +115,7 @@ class LibraryImporterTest {
         lyricsDao = lyricsDao,
         sidecarSource = FakeSidecarSource(sidecarByUri),
         setlistDao = setlistDao,
+        chordSheetDao = chordSheetDao,
     )
 
     // ── Core upsert tests (from M1, still valid) ──────────────────────────────

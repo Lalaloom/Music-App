@@ -143,4 +143,14 @@
     <string name="admin_reset_confirm2_title">Last chance</string>
     <string name="admin_reset_confirm2_body">Type RESET (upper-case) to confirm.</string>
     <string name="admin_reset_confirm2_cta">Reset</string>
+
+    <!-- Chord sheets (M5) -->
+    <string name="chord_sheets_open_cd">Chord sheets</string>
+    <string name="chord_list_title">Chord sheets</string>
+    <string name="chord_list_empty">No chord sheets yet. Drop .cho / .chordpro / .pro / .crd files into one of your folders and tap Scan now.</string>
+    <string name="chord_viewer_fallback_title">Untitled chord sheet</string>
+    <string name="chord_viewer_loading">Loading…</string>
+    <string name="chord_viewer_transpose_down_cd">Transpose down one semitone</string>
+    <string name="chord_viewer_transpose_up_cd">Transpose up one semitone</string>
+    <string name="chord_viewer_transpose_reset_cd">Reset transposition</string>
 </resources>

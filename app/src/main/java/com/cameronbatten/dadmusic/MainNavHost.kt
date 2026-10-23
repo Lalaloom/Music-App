@@ -16,6 +16,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.cameronbatten.dadmusic.data.db.FileType
 import com.cameronbatten.dadmusic.ui.admin.AdminScreen
+import com.cameronbatten.dadmusic.ui.chord.ChordSheetListScreen
+import com.cameronbatten.dadmusic.ui.chord.ChordSheetViewerScreen
 import com.cameronbatten.dadmusic.ui.folders.FolderPickerScreen
 import com.cameronbatten.dadmusic.ui.lyricseditor.LyricsEditorScreen
 import com.cameronbatten.dadmusic.ui.navigator.NavigatorScreen
@@ -52,6 +54,7 @@ fun MainNavHost(appStartViewModel: AppStartViewModel = hiltViewModel()) {
                     NavigatorScreen(
                         onOpenFolders = { navController.navigate("folders") },
                         onOpenSettings = { navController.navigate("settings") },
+                        onOpenChordSheets = { navController.navigate("chords") },
                         onOpenPlayer = { fileType ->
                             val route = when (fileType) {
                                 FileType.AUDIO -> "zen"
@@ -60,6 +63,18 @@ fun MainNavHost(appStartViewModel: AppStartViewModel = hiltViewModel()) {
                             navController.navigate(route)
                         },
                     )
+                }
+                composable("chords") {
+                    ChordSheetListScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenSheet = { id -> navController.navigate("chord/$id") },
+                    )
+                }
+                composable(
+                    route = "chord/{sheetId}",
+                    arguments = listOf(navArgument("sheetId") { type = NavType.LongType }),
+                ) {
+                    ChordSheetViewerScreen(onBack = { navController.popBackStack() })
                 }
                 composable("folders") {
                     FolderPickerScreen(onDone = { navController.popBackStack() })
