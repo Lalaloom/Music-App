@@ -51,6 +51,7 @@ private const val OFFSET_RANGE_MS = 2_000f
 fun SettingsScreen(
     onBack: () -> Unit,
     onOpenAdmin: () -> Unit = {},
+    onOpenPedals: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val offset by viewModel.lyricOffsetMs.collectAsStateWithLifecycle()
@@ -133,6 +134,18 @@ fun SettingsScreen(
                 current = endBehaviour,
                 onPick = viewModel::setOnSongEnded,
             )
+
+            Spacer(Modifier.height(24.dp))
+
+            SectionHeader(stringResource(R.string.settings_section_pedals))
+            Button(
+                onClick = onOpenPedals,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp),
+            ) {
+                Text(stringResource(R.string.settings_pedals_cta))
+            }
 
             Spacer(Modifier.height(24.dp))
 

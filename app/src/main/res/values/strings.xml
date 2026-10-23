@@ -144,6 +144,19 @@
     <string name="admin_reset_confirm2_body">Type RESET (upper-case) to confirm.</string>
     <string name="admin_reset_confirm2_cta">Reset</string>
 
+    <!-- Pedals (M6) -->
+    <string name="settings_section_pedals">Pedals</string>
+    <string name="settings_pedals_cta">Pedal mapping</string>
+    <string name="pedal_screen_title">Pedal mapping</string>
+    <string name="pedal_screen_blurb">Press the capture button and tap your pedal. Supported pedals send standard Bluetooth HID keycodes (AirTurn, PageFlip, etc.).</string>
+    <string name="pedal_row_bound">Bound to key %1$d</string>
+    <string name="pedal_row_unbound">Not bound</string>
+    <string name="pedal_row_capture">Capture</string>
+    <string name="pedal_row_clear">Clear</string>
+    <string name="pedal_capture_title">Press your pedal now</string>
+    <string name="pedal_capture_body">The next key press will be bound to %1$s.</string>
+    <string name="pedal_capture_cancel">Cancel</string>
+
     <!-- Chord sheets (M5) -->
     <string name="chord_sheets_open_cd">Chord sheets</string>
     <string name="chord_list_title">Chord sheets</string>

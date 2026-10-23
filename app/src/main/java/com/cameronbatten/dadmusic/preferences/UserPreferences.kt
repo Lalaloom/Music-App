@@ -77,6 +77,19 @@ class UserPreferences @Inject constructor(
     }
 
     /**
+     * Encoded pedal bindings (semicolon-separated `keyCode:ACTION` — see
+     * [com.cameronbatten.dadmusic.pedal.PedalBindings]). Empty string = no
+     * bindings configured.
+     */
+    val pedalBindingsText: Flow<String> = store.data
+        .catch { e -> if (e is IOException) emit(androidx.datastore.preferences.core.emptyPreferences()) else throw e }
+        .map { it[PEDAL_BINDINGS_KEY] ?: "" }
+
+    suspend fun setPedalBindingsText(text: String) {
+        store.edit { it[PEDAL_BINDINGS_KEY] = text }
+    }
+
+    /**
      * Admin-only entitlement override. `null` means "no override — use the
      * entitlement source's own value". Non-null forces `proEnabled` to that
      * boolean. Lets the author QA Free-tier behaviour on the sideload build.
@@ -114,5 +127,6 @@ class UserPreferences @Inject constructor(
         val ONBOARDING_COMPLETED_KEY = booleanPreferencesKey("onboarding_completed")
         val END_BEHAVIOUR_KEY = stringPreferencesKey("end_behaviour")
         val ADMIN_PRO_OVERRIDE_KEY = stringPreferencesKey("admin_pro_override")
+        val PEDAL_BINDINGS_KEY = stringPreferencesKey("pedal_bindings")
     }
 }
