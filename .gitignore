@@ -35,6 +35,12 @@ Thumbs.db
 # Superpowers / brainstorm artifacts (local-only scratch)
 .superpowers/
 
+# Local agent tooling scratch
+.claude/
+.claude-flow/
+.swarm/
+Modelfile
+
 # Editor
 .vscode/
 *.swp
