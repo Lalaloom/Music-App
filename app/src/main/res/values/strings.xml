@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Dad Music</string>
+
+    <!-- Library screen -->
+    <string name="library_title">Dad Music</string>
+    <string name="library_empty_prompt">No songs yet. Pick a folder to get started.</string>
+    <string name="library_pick_folder_button">Pick a folder</string>
+    <string name="library_song_type_audio">Audio track</string>
+    <string name="library_song_type_video">Video track</string>
+
+    <!-- Folder picker screen -->
+    <string name="folders_title">Your music folders</string>
+    <string name="folders_add_button">Add folder</string>
+    <string name="folders_scan_button">Scan now</string>
+    <string name="folders_remove_folder_description">Remove folder</string>
+    <string name="folders_scanning">Scanning…</string>
+    <string name="folders_done_button">Done</string>
+    <string name="folders_empty_prompt">No folders added yet</string>
+    <string name="folders_import_summary">Added %1$d, updated %2$d, removed %3$d</string>
+
+    <!-- Mini-player (library) -->
+    <string name="mini_player_open_description">Open full player</string>
+
+    <!-- Navigator -->
+    <string name="navigator_setlist_dropdown_cd">Switch setlist</string>
+    <string name="navigator_library_option">Library</string>
+    <string name="navigator_queue_empty_setlist">This setlist has no songs yet.</string>
+    <string name="navigator_queue_empty_library">Pick a song from the library to start a queue.</string>
+    <string name="navigator_save_changes">Save changes to %1$s</string>
+    <string name="navigator_move_up_cd">Move earlier</string>
+    <string name="navigator_move_down_cd">Move later</string>
+    <string name="navigator_drag_handle_cd">Drag to reorder</string>
+    <string name="navigator_remove_from_queue_cd">Remove from queue</string>
+    <string name="navigator_tab_setlist">Setlist</string>
+    <string name="navigator_tab_library">Library</string>
+
+    <!-- Search pane -->
+    <string name="search_placeholder">Search library</string>
+    <string name="search_clear_cd">Clear search</string>
+    <string name="search_add_to_queue_cd">Add to queue</string>
+    <string name="search_empty_hint">Type to search your library.</string>
+    <string name="search_no_results">No matches.</string>
+    <string name="search_undo">Undo</string>
+    <string name="search_already_present_dismiss">OK</string>
+
+    <!-- Player screen -->
+    <string name="player_play_pause_description">Play / Pause</string>
+    <string name="player_skip_next_description">Skip to next song</string>
+    <string name="player_skip_previous_description">Skip to previous song</string>
+    <string name="player_seek_description">Seek position</string>
+    <string name="player_unknown_title">Unknown title</string>
+    <string name="player_unknown_artist">Unknown artist</string>
+
+    <!-- Zen performance view -->
+    <string name="zen_no_lyrics_hint">No lyrics yet. Settings → Fetch all lyrics will try to find them.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_open_cd">Open settings</string>
+    <string name="settings_section_lyrics">Lyrics</string>
+    <string name="settings_section_font_size">Font size</string>
+    <string name="settings_section_library">Library</string>
+    <string name="settings_lyric_offset_label">Lyric timing offset: %1$d ms</string>
+    <string name="settings_font_small">Small</string>
+    <string name="settings_font_medium">Medium</string>
+    <string name="settings_font_large">Large</string>
+    <string name="settings_refetch_button">Fetch all missing lyrics</string>
+    <string name="settings_fetch_progress">%1$d / %2$d (%3$d failed)</string>
+    <string name="settings_section_playback">After song ends</string>
+    <string name="settings_end_pause">Pause</string>
+    <string name="settings_end_auto_advance">Play next</string>
+    <string name="settings_end_repeat">Repeat</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_about_app">Dad Music %1$s</string>
+    <string name="settings_about_lyrics_credit">Lyrics via LRCLIB (lrclib.net)</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome_title">Welcome to Dad Music</string>
+    <string name="onboarding_welcome_subtitle">Your gig-ready player. Pick folders and each one becomes a setlist. Lyrics scroll with the song.</string>
+    <string name="onboarding_welcome_cta">Let\'s go</string>
+    <string name="onboarding_folders_title">Where\'s your music?</string>
+    <string name="onboarding_folders_subtitle">Pick the folders that hold your songs. Each becomes a setlist. You can add more later.</string>
+    <string name="onboarding_folders_add">Pick a folder</string>
+    <string name="onboarding_folders_next">Next</string>
+    <string name="onboarding_folders_skip">Skip for now</string>
+    <string name="onboarding_scanning_title">Setting up your library</string>
+    <string name="onboarding_scanning_phase_scanning">Scanning files…</string>
+    <string name="onboarding_scanning_phase_fetching">Fetching lyrics (%1$d / %2$d)</string>
+    <string name="onboarding_done_title">You\'re all set</string>
+    <string name="onboarding_done_summary">Added %1$d songs.</string>
+    <string name="onboarding_done_summary_empty">No folders yet — add some from the folder icon when you\'re ready.</string>
+    <string name="onboarding_done_cta">Open my library</string>
+
+    <!-- Common -->
+    <string name="back_description">Navigate back</string>
+    <string name="folders_icon_description">Open folders</string>
+
+    <!-- Lyrics editor -->
+    <string name="lyrics_editor_title_fallback">Edit lyrics</string>
+    <string name="lyrics_editor_save_cd">Save lyrics</string>
+    <string name="lyrics_editor_placeholder">Paste LRC or plain lyrics…</string>
+    <string name="zen_edit_lyrics_description">Edit lyrics</string>
+</resources>
