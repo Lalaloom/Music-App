@@ -150,6 +150,19 @@
     <string name="admin_reset_confirm2_body">Type RESET (upper-case) to confirm.</string>
     <string name="admin_reset_confirm2_cta">Reset</string>
 
+    <!-- Band mode (M9) -->
+    <string name="settings_section_band">Band mode</string>
+    <string name="settings_band_cta">Band mode (local network)</string>
+    <string name="band_screen_title">Band mode</string>
+    <string name="band_screen_blurb">Keeps two or more tablets on the same wifi in sync. One device hosts; the others join. Experimental — verify with your bandmates before relying on it on stage.</string>
+    <string name="band_mode_off">Off</string>
+    <string name="band_mode_hosting">Hosting — bandmates on this wifi can join.</string>
+    <string name="band_mode_joined">Joined — following the host\'s playback.</string>
+    <string name="band_host_cta">Host band session</string>
+    <string name="band_join_cta">Join band session</string>
+    <string name="band_stop_cta">Stop</string>
+    <string name="band_peers_label">Peers</string>
+
     <!-- Pedals (M6) -->
     <string name="settings_section_pedals">Pedals</string>
     <string name="settings_pedals_cta">Pedal mapping</string>
