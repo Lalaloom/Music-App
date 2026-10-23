@@ -62,6 +62,16 @@ class LrcCacheStore @Inject constructor(
         fileFor(songId).delete()
     }
 
+    /**
+     * Deletes every `*.lrc` and stale `*.lrc.tmp` under the cache directory
+     * and returns the number of files removed. Used by Admin → Clear lyrics cache.
+     */
+    suspend fun clearAll(): Int = withContext(Dispatchers.IO) {
+        val files = lyricsDir.listFiles { f -> f.name.endsWith(".lrc") || f.name.endsWith(".lrc.tmp") }
+            ?: return@withContext 0
+        files.count { it.delete() }
+    }
+
     /** Returns the absolute path where [songId]'s cache file lives (whether or not it exists). */
     fun pathFor(songId: Long): String = fileFor(songId).absolutePath
 

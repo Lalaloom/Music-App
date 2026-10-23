@@ -46,4 +46,27 @@ interface SongDao : SongLookup {
 
     @Query("SELECT * FROM songs WHERE id = :id LIMIT 1")
     override suspend fun findById(id: Long): Song?
+
+    // ── Admin / override helpers (M4) ─────────────────────────────────────────
+
+    @Query("SELECT * FROM songs ORDER BY title ASC")
+    fun observeAllByTitle(): Flow<List<Song>>
+
+    /**
+     * Admin → Song DB editor: user-authored metadata edit. Only touches the
+     * three fields the admin screen exposes — never `uri`, `sizeBytes`,
+     * `durationMs`, `fileType`, `lyricsStatus`, `lyricsCachePath`, or
+     * `dateAdded`.
+     */
+    @Query(
+        "UPDATE songs SET title = :title, artist = :artist, confirmed = :confirmed WHERE id = :id",
+    )
+    suspend fun updateTitleArtist(id: Long, title: String, artist: String?, confirmed: Boolean): Int
+
+    /**
+     * Admin → Clear lyrics cache: downgrade every song's lyricsStatus to
+     * MISSING so the next bulk fetch picks them all up.
+     */
+    @Query("UPDATE songs SET lyricsStatus = 'MISSING', lyricsCachePath = NULL")
+    suspend fun markAllLyricsStatusMissing(): Int
 }

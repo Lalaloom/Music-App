@@ -24,4 +24,8 @@ interface LyricsDao {
 
     @Query("DELETE FROM lyrics WHERE songId = :songId")
     suspend fun deleteBySongId(songId: Long)
+
+    /** Admin → Clear lyrics cache: wipes every lyrics row in one shot. */
+    @Query("DELETE FROM lyrics")
+    suspend fun deleteAll(): Int
 }
