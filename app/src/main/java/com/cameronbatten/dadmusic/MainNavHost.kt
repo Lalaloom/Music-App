@@ -19,6 +19,7 @@ import com.cameronbatten.dadmusic.ui.admin.AdminScreen
 import com.cameronbatten.dadmusic.ui.chord.ChordSheetListScreen
 import com.cameronbatten.dadmusic.ui.chord.ChordSheetViewerScreen
 import com.cameronbatten.dadmusic.ui.folders.FolderPickerScreen
+import com.cameronbatten.dadmusic.ui.lyricseditor.AdvancedLyricsEditorScreen
 import com.cameronbatten.dadmusic.ui.lyricseditor.LyricsEditorScreen
 import com.cameronbatten.dadmusic.ui.navigator.NavigatorScreen
 import com.cameronbatten.dadmusic.ui.onboarding.OnboardingHost
@@ -112,8 +113,18 @@ fun MainNavHost(appStartViewModel: AppStartViewModel = hiltViewModel()) {
                 composable(
                     route = "editor/{songId}",
                     arguments = listOf(navArgument("songId") { type = NavType.LongType }),
+                ) { backStackEntry ->
+                    val songId = backStackEntry.arguments?.getLong("songId") ?: -1L
+                    LyricsEditorScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenAdvanced = { navController.navigate("editor-advanced/$songId") },
+                    )
+                }
+                composable(
+                    route = "editor-advanced/{songId}",
+                    arguments = listOf(navArgument("songId") { type = NavType.LongType }),
                 ) {
-                    LyricsEditorScreen(onBack = { navController.popBackStack() })
+                    AdvancedLyricsEditorScreen(onBack = { navController.popBackStack() })
                 }
             }
         }

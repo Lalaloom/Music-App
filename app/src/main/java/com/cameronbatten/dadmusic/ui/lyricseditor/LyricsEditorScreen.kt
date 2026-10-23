@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -40,6 +41,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LyricsEditorScreen(
     onBack: () -> Unit,
+    onOpenAdvanced: () -> Unit = {},
     viewModel: LyricsEditorViewModel = hiltViewModel(),
 ) {
     val song by viewModel.song.collectAsStateWithLifecycle()
@@ -66,6 +68,12 @@ fun LyricsEditorScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenAdvanced) {
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = stringResource(R.string.lyrics_editor_advanced_cd),
+                        )
+                    }
                     IconButton(onClick = {
                         scope.launch {
                             viewModel.save(text)

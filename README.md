@@ -119,6 +119,7 @@ on the Xiaomi tablet (and emulator for parts an emulator can hit):
 - `docs/superpowers/manual-smoke-M4.md`
 - `docs/superpowers/manual-smoke-M5.md`
 - `docs/superpowers/manual-smoke-M6.md`
+- `docs/superpowers/manual-smoke-M7.md`
 
 ---
 
