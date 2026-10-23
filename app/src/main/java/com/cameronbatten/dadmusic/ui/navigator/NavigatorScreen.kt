@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -58,6 +59,7 @@ fun NavigatorScreen(
     onOpenFolders: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenPlayer: (FileType) -> Unit,
+    onOpenChordSheets: () -> Unit = {},
     viewModel: NavigatorViewModel = hiltViewModel(),
 ) {
     val setlists by viewModel.setlists.collectAsStateWithLifecycle()
@@ -110,6 +112,12 @@ fun NavigatorScreen(
                     )
                 },
                 actions = {
+                    IconButton(onClick = onOpenChordSheets) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.LibraryBooks,
+                            contentDescription = stringResource(R.string.chord_sheets_open_cd),
+                        )
+                    }
                     IconButton(onClick = onOpenFolders) {
                         Icon(
                             imageVector = Icons.Default.FolderOpen,

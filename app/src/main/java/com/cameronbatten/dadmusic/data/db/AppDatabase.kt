@@ -5,8 +5,15 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 @Database(
-    entities = [Song::class, Lyrics::class, Setlist::class, SetlistEntry::class, LiveQueueEntry::class],
-    version = 4,
+    entities = [
+        Song::class,
+        Lyrics::class,
+        Setlist::class,
+        SetlistEntry::class,
+        LiveQueueEntry::class,
+        ChordSheet::class,
+    ],
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(
@@ -20,4 +27,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun lyricsDao(): LyricsDao
     abstract fun setlistDao(): SetlistDao
     abstract fun liveQueueDao(): LiveQueueDao
+    abstract fun chordSheetDao(): ChordSheetDao
 }

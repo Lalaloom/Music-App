@@ -37,6 +37,8 @@ data class ImportResult(
 )
 
 private val VIDEO_EXTENSIONS = setOf("mp4", "mkv", "webm")
+private val CHORD_EXTENSIONS = setOf("cho", "chordpro", "pro", "crd")
+private val PDF_EXTENSIONS = setOf("pdf")
 private const val SETLIST_POSITION_STEP = 1000
 
 /**
@@ -72,6 +74,7 @@ class LibraryImporter @Inject constructor(
     private val lyricsDao: LyricsDao,
     private val sidecarSource: SidecarLyricsSource,
     private val setlistDao: SetlistDao,
+    private val chordSheetDao: com.cameronbatten.dadmusic.data.db.ChordSheetDao,
 ) : LibraryImporterSource {
 
     override suspend fun importAll(): ImportResult = withContext(Dispatchers.IO) {
@@ -79,6 +82,8 @@ class LibraryImporter @Inject constructor(
 
         val orphans: MutableMap<String, Song> =
             songDao.getAll().associateBy { it.uri }.toMutableMap()
+        val chordOrphans: MutableMap<String, com.cameronbatten.dadmusic.data.db.ChordSheet> =
+            chordSheetDao.getAll().associateBy { it.uri }.toMutableMap()
 
         var added = 0
         var updated = 0
@@ -90,6 +95,16 @@ class LibraryImporter @Inject constructor(
 
         for (file in files) {
             val uriString = file.uri.toString()
+            val ext = file.extension.lowercase()
+
+            // ChordPro files land in their own table — not songs. (M5)
+            if (ext in CHORD_EXTENSIONS) {
+                processChordSheet(file, uriString, chordOrphans)
+                continue
+            }
+            // PDFs are discovered but handled in M8; skip for now.
+            if (ext in PDF_EXTENSIONS) continue
+
             val metadata = metadataReader.read(file.uri)
             val parsed = FilenameParser.parse(file.displayName)
 
@@ -202,10 +217,48 @@ class LibraryImporter @Inject constructor(
         for (dbUri in orphans.keys) {
             songDao.deleteByUri(dbUri)
         }
+        // Prune chord sheets whose files are gone.
+        for (dbUri in chordOrphans.keys) {
+            chordSheetDao.deleteByUri(dbUri)
+        }
 
         syncSetlists(songIdByFolder, folderNames)
 
         ImportResult(added = added, updated = updated, removed = removedCount, skipped = 0)
+    }
+
+    /**
+     * Upsert a chord-sheet row for a `.cho` / `.chordpro` / `.pro` / `.crd`
+     * file. Pulls title + artist from the file's own ChordPro directives when
+     * present; falls back to the filename (minus extension) for the title.
+     * Reuses [sidecarSource] as a generic SAF-document text reader.
+     */
+    private suspend fun processChordSheet(
+        file: DiscoveredFile,
+        uriString: String,
+        chordOrphans: MutableMap<String, com.cameronbatten.dadmusic.data.db.ChordSheet>,
+    ) {
+        val text = sidecarSource.read(file.uri)
+        val parsed = text?.let { com.cameronbatten.dadmusic.chord.ChordProParser.parse(it) }
+        val title = parsed?.title
+            ?: file.displayName.substringBeforeLast('.', file.displayName)
+        val artist = parsed?.artist
+
+        val existing = chordOrphans.remove(uriString)
+        val row = (existing ?: com.cameronbatten.dadmusic.data.db.ChordSheet(
+            uri = uriString,
+            title = title,
+            artist = artist,
+            folderUri = file.rootFolderUri,
+            folderName = file.rootFolderName,
+            dateAdded = System.currentTimeMillis(),
+        )).copy(
+            title = title,
+            artist = artist,
+            folderUri = file.rootFolderUri,
+            folderName = file.rootFolderName,
+        )
+        chordSheetDao.upsert(row)
     }
 
     /**
