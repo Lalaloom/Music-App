@@ -22,6 +22,7 @@ import com.cameronbatten.dadmusic.ui.folders.FolderPickerScreen
 import com.cameronbatten.dadmusic.ui.lyricseditor.LyricsEditorScreen
 import com.cameronbatten.dadmusic.ui.navigator.NavigatorScreen
 import com.cameronbatten.dadmusic.ui.onboarding.OnboardingHost
+import com.cameronbatten.dadmusic.ui.pedal.PedalBindingsScreen
 import com.cameronbatten.dadmusic.ui.player.PlayerScreen
 import com.cameronbatten.dadmusic.ui.settings.SettingsScreen
 import com.cameronbatten.dadmusic.ui.zen.ZenPlayerScreen
@@ -92,7 +93,11 @@ fun MainNavHost(appStartViewModel: AppStartViewModel = hiltViewModel()) {
                     SettingsScreen(
                         onBack = { navController.popBackStack() },
                         onOpenAdmin = { navController.navigate("admin") },
+                        onOpenPedals = { navController.navigate("pedals") },
                     )
+                }
+                composable("pedals") {
+                    PedalBindingsScreen(onBack = { navController.popBackStack() })
                 }
                 composable("admin") {
                     AdminScreen(

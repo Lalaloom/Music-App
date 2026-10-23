@@ -7,6 +7,8 @@ import com.cameronbatten.dadmusic.data.db.LyricsDao
 import com.cameronbatten.dadmusic.data.db.Song
 import com.cameronbatten.dadmusic.lyrics.LrcParser
 import com.cameronbatten.dadmusic.lyrics.TimedLine
+import com.cameronbatten.dadmusic.pedal.PedalAction
+import com.cameronbatten.dadmusic.pedal.PedalEventBus
 import com.cameronbatten.dadmusic.playback.PlaybackSession
 import com.cameronbatten.dadmusic.playback.PlaybackState
 import com.cameronbatten.dadmusic.playback.PositionTicker
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -32,7 +35,25 @@ class ZenPlayerViewModel @Inject constructor(
     private val lyricsDao: LyricsDao,
     private val userPreferences: UserPreferences,
     positionTicker: PositionTicker,
+    pedalBus: PedalEventBus,
 ) : ViewModel() {
+
+    init {
+        viewModelScope.launch {
+            pedalBus.events.collect { action ->
+                when (action) {
+                    PedalAction.PLAY_PAUSE -> playPause()
+                    PedalAction.NEXT -> skipNext()
+                    PedalAction.PREV -> skipPrevious()
+                    PedalAction.SCROLL_UP, PedalAction.SCROLL_DOWN -> {
+                        // Zen view auto-scrolls with playback; manual scroll
+                        // bindings are intended for the chord-sheet viewer
+                        // and are ignored here.
+                    }
+                }
+            }
+        }
+    }
 
     val playbackState: StateFlow<PlaybackState> = playbackSession.state()
 
